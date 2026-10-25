@@ -5,7 +5,7 @@
 | Check | Result | Evidence |
 |---|---|---|
 | Flutter analysis | PASS | `flutter analyze --no-pub`: no issues found |
-| Automated Flutter tests | PASS | 23 tests passed, including AI controller, service, storage, widget, error, retry, and Markdown behavior |
+| Automated Flutter tests | PASS | 25 tests passed, including AI behavior, navigation, theme, and supported Windy URL/layer validation |
 | Backend checks | PASS | Node syntax checks and 4 tests passed; production dependency audit found 0 vulnerabilities |
 | Dependency resolution | PASS | `flutter pub get`: dependencies resolved; 33 constrained updates are available |
 | Flutter doctor | PASS | No issues found; command-line tools 22.0 installed and all Android SDK licenses accepted |
@@ -19,6 +19,9 @@
 | End-to-end authentication | BLOCKED | No authentication backend exists |
 | AI client and proxy contract | PASS | Proxy/client tests cover authentication failure, no client key, signed context, quota mapping, retry, offline, persistence, and HTTP response contract |
 | Physical AI UI smoke test | PASS | Global FAB, setup status, exact welcome/disclaimer, four prompts, composer, and close control verified on Infinix X6833B |
+| Redesigned dashboard smoke test | PASS | Safety-first header, current conditions, metrics, correctly labeled demo advisory, quick actions, hourly cards, new navigation, and accessible labels rendered on Infinix X6833B |
+| Redesigned weather map smoke test | PASS | Windy map, location, layer selector, legend, attribution, and native playback control visibly rendered on Infinix X6833B |
+| Full map playback cycle | NOT RUN | Native Windy play/pause/seek control is visible and no longer obstructed; frame progression still requires a supervised visual timing check |
 | Live Gemini response | BLOCKED | No Gemini key, deployed HTTPS proxy, Firebase project, or real app ID token was supplied; no live response is claimed |
 
 ## Android setup
@@ -48,6 +51,7 @@ Android command-line tools 22.0 are installed at the standard `cmdline-tools/lat
 - No remote backend or synchronization.
 - Live alerts are disabled by default.
 - Radar depends on an external web page.
+- Weather-map animation is supplied by Windy's supported embed and represents forecast time states. Kalasag does not claim historical observation frames or direct programmatic synchronization with the cross-origin embed.
 - Notification settings do not provide OS push delivery.
 - Gradle reports deprecated features that will need attention before a future Gradle 10 migration.
 - Thirty-three dependency updates are outside current constraints and require deliberate compatibility review rather than a bulk upgrade.

@@ -4,6 +4,6 @@ import 'package:kalasag/theme.dart';
 
 void main() {
   test('Kalasag theme has the expected brand color', () {
-    expect(KalasagTheme.primary, const Color(0xFF4B8FF7));
+    expect(KalasagTheme.primary, const Color(0xFF1769D2));
   });
 }

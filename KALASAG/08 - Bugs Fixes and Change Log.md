@@ -61,3 +61,15 @@
 - Rebuilt and installed the debug APK. Physically verified the global entry point and complete unconfigured-state chat sheet on the Infinix X6833B.
 - Live Gemini validation remains explicitly blocked until credentials, HTTPS deployment, Firebase configuration, and real authentication are supplied.
 
+### Professional UI/UX overhaul
+
+- Introduced centralized color, typography, spacing, radius, button, field, card, navigation, dialog, and bottom-sheet styling.
+- Rebuilt the dashboard around location, current conditions, safety status, emergency/map shortcuts, hourly weather, and a concise outlook.
+- Removed the developer-facing API evidence action and relocated Open-Meteo attribution to an unobtrusive footer.
+- Correctly labels default offline alerts as practice/demo information instead of live reports.
+- Rebuilt the weather map as a nearly full-screen Windy experience with real supported layer changes, loading/error states, compact controls, legend, attribution, and Windy's own forecast timeline/playback.
+- Hid Kalasag AI on Map and SOS after device inspection found it could cover Windy's play control.
+- Renamed primary navigation to Home, Alerts, Map, Ready, and SOS with consistent selected states.
+- Simplified preparedness storage language, emergency search, contact dialing, and safety-tool controls.
+- Added two Windy configuration tests. All 25 Flutter tests pass and the debug APK builds.
+

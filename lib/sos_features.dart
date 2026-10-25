@@ -5,6 +5,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'app_state.dart';
 import 'models.dart';
+import 'design_system.dart';
+import 'theme.dart';
 
 class EmergencyContactsScreen extends StatelessWidget {
   const EmergencyContactsScreen({super.key});
@@ -46,10 +48,22 @@ class EmergencyContactsScreen extends StatelessWidget {
             )
           : ListView.separated(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-              itemCount: contacts.length,
+              itemCount: contacts.length + 1,
               separatorBuilder: (_, _) => const SizedBox(height: 8),
               itemBuilder: (context, index) {
-                final contact = contacts[index];
+                if (index == 0) {
+                  return const Padding(
+                    padding: EdgeInsets.only(bottom: 8),
+                    child: KalasagNotice(
+                      icon: Icons.privacy_tip_outlined,
+                      title: 'You stay in control',
+                      message:
+                          'Kalasag opens your phone dialer. It never places a call automatically.',
+                      color: KalasagTheme.success,
+                    ),
+                  );
+                }
+                final contact = contacts[index - 1];
                 return Card(
                   child: ListTile(
                     leading: CircleAvatar(
@@ -61,23 +75,32 @@ class EmergencyContactsScreen extends StatelessWidget {
                           ? contact.phone
                           : '${contact.relationship} • ${contact.phone}',
                     ),
-                    trailing: PopupMenuButton<String>(
-                      onSelected: (action) {
-                        if (action == 'call') _confirmDial(context, contact);
-                        if (action == 'edit') {
-                          _showContactForm(context, existing: contact);
-                        }
-                        if (action == 'delete') {
-                          _confirmDelete(context, contact);
-                        }
-                      },
-                      itemBuilder: (_) => const [
-                        PopupMenuItem(
-                          value: 'call',
-                          child: Text('Open dialer'),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton.filledTonal(
+                          tooltip: 'Open dialer',
+                          onPressed: () => _confirmDial(context, contact),
+                          icon: const Icon(Icons.phone_outlined),
                         ),
-                        PopupMenuItem(value: 'edit', child: Text('Edit')),
-                        PopupMenuItem(value: 'delete', child: Text('Delete')),
+                        PopupMenuButton<String>(
+                          tooltip: 'Contact options',
+                          onSelected: (action) {
+                            if (action == 'edit') {
+                              _showContactForm(context, existing: contact);
+                            }
+                            if (action == 'delete') {
+                              _confirmDelete(context, contact);
+                            }
+                          },
+                          itemBuilder: (_) => const [
+                            PopupMenuItem(value: 'edit', child: Text('Edit')),
+                            PopupMenuItem(
+                              value: 'delete',
+                              child: Text('Delete'),
+                            ),
+                          ],
+                        ),
                       ],
                     ),
                     onTap: () => _confirmDial(context, contact),
@@ -328,17 +351,24 @@ class _EmergencyToolsScreenState extends State<EmergencyToolsScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Offline safety tools')),
+    appBar: AppBar(title: const Text('Safety tools')),
     body: ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        const KalasagNotice(
+          icon: Icons.offline_bolt_outlined,
+          title: 'Works without internet',
+          message:
+              'These device tools do not contact responders or send an SOS.',
+        ),
+        const SizedBox(height: 16),
         _ToolCard(
           icon: torchOn ? Icons.flashlight_on : Icons.flashlight_off,
-          title: 'SOS flashlight',
+          title: 'Flashlight',
           description:
               'Use the rear torch for visibility. It switches off when you leave this screen.',
           active: torchOn,
-          buttonLabel: torchOn ? 'Turn off' : 'Turn on',
+          buttonLabel: torchOn ? 'Turn off flashlight' : 'Turn on flashlight',
           onPressed: busy ? null : () => _invoke('toggleTorch'),
         ),
         const SizedBox(height: 12),
@@ -348,18 +378,10 @@ class _EmergencyToolsScreenState extends State<EmergencyToolsScreen> {
           description:
               'Plays a repeating alert tone. Check your volume and stop it as soon as it is no longer needed.',
           active: whistleOn,
-          buttonLabel: whistleOn ? 'Stop sound' : 'Play sound',
+          buttonLabel: whistleOn
+              ? 'Stop emergency sound'
+              : 'Play emergency sound',
           onPressed: busy ? null : () => _invoke('toggleWhistle'),
-        ),
-        const SizedBox(height: 12),
-        const Card(
-          child: ListTile(
-            leading: Icon(Icons.info_outline),
-            title: Text('Use responsibly'),
-            subtitle: Text(
-              'These device tools do not contact responders or confirm that anyone received an SOS.',
-            ),
-          ),
         ),
       ],
     ),

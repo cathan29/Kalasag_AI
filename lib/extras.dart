@@ -5,6 +5,7 @@ import 'app_state.dart';
 import 'screens.dart';
 import 'sos_features.dart';
 import 'theme.dart';
+import 'design_system.dart';
 import 'ai/kalasag_ai_fab.dart';
 
 class EmergencyScreen extends StatefulWidget {
@@ -54,14 +55,10 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
         return ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            Text(
-              'Emergency',
-              style: Theme.of(
-                context,
-              ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+            const KalasagPageHeader(
+              title: 'Emergency',
+              subtitle: 'Contacts, hotlines, and offline safety tools',
             ),
-            const Text('Verified hotlines and first-aid guides'),
-            const SizedBox(height: 14),
             Container(
               height: 130,
               padding: const EdgeInsets.all(18),
@@ -79,7 +76,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
               child: const Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  'Need help now?\nCall the right responder.',
+                  'Need help now?\nChoose a trusted contact or responder.',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 23,
@@ -122,7 +119,8 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
             TextField(
               decoration: const InputDecoration(
                 prefixIcon: Icon(Icons.search),
-                labelText: 'Search municipality or province',
+                hintText: 'Find local hotlines',
+                labelText: 'Municipality or province',
               ),
               onChanged: (value) => setState(() => query = value),
             ),
@@ -496,14 +494,18 @@ class _HomeShellState extends State<HomeShell> {
         NavigationDestination(
           icon: Icon(Icons.cloud_outlined),
           selectedIcon: Icon(Icons.cloud),
-          label: 'Now',
+          label: 'Home',
         ),
         NavigationDestination(
           icon: Icon(Icons.warning_amber_outlined),
           selectedIcon: Icon(Icons.warning),
           label: 'Alerts',
         ),
-        NavigationDestination(icon: Icon(Icons.radar), label: 'Radar'),
+        NavigationDestination(
+          icon: Icon(Icons.radar_outlined),
+          selectedIcon: Icon(Icons.radar_rounded),
+          label: 'Map',
+        ),
         NavigationDestination(
           icon: Icon(Icons.shield_outlined),
           selectedIcon: Icon(Icons.shield),
@@ -516,6 +518,10 @@ class _HomeShellState extends State<HomeShell> {
         ),
       ],
     ),
-    floatingActionButton: index == 4 ? null : const KalasagAiFab(),
+    // Windy's native playback control occupies the map's lower-right corner.
+    // SOS also reserves that area for time-critical actions.
+    floatingActionButton: index == 2 || index == 4
+        ? null
+        : const KalasagAiFab(),
   );
 }

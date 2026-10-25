@@ -20,6 +20,8 @@ This folder is the standalone Flutter migration of the original React Native app
 - Offline rule-based safety guide with urgent escalation and disaster quick prompts
 - Global Kalasag AI chat sheet with suggested questions, Markdown responses, local history, retry/cancel controls, and offline-guide fallback
 - Secure Node.js Gemini proxy with Firebase ID-token verification, rate limiting, signed conversation context, and sanitized errors
+- Professional safety-first design system and dashboard with concise demo/live status language
+- Nearly full-screen Windy forecast map with supported layer switching and native forecast playback controls
 - Light/dark themes and Android/iOS location configuration
 
 ## Run

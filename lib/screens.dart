@@ -10,6 +10,7 @@ import 'theme.dart';
 import 'extras.dart';
 import 'api_activity_screen.dart';
 import 'offline_safety_assistant.dart';
+import 'design_system.dart';
 
 String value(dynamic v, [String unit = '']) =>
     v is num ? '${v.round()}$unit' : 'N/A';
@@ -28,6 +29,35 @@ String relative(DateTime? d) {
   if (x.inHours < 1) return '${x.inMinutes}m ago';
   if (x.inDays < 1) return '${x.inHours}h ago';
   return DateFormat.MMMd().format(d);
+}
+
+const windySupportedLayers = {'rain', 'wind', 'temp', 'clouds'};
+
+Uri buildWindyEmbedUri({required GeoPoint point, required String overlay}) {
+  if (!windySupportedLayers.contains(overlay)) {
+    throw ArgumentError.value(overlay, 'overlay', 'Unsupported Windy layer');
+  }
+  return Uri.https('embed.windy.com', '/embed2.html', {
+    'lat': point.latitude.toString(),
+    'lon': point.longitude.toString(),
+    'detailLat': point.latitude.toString(),
+    'detailLon': point.longitude.toString(),
+    'zoom': '7',
+    'level': 'surface',
+    'overlay': overlay,
+    'product': 'ecmwf',
+    'menu': '',
+    'message': 'true',
+    'marker': 'true',
+    'calendar': 'now',
+    'pressure': '',
+    'type': 'map',
+    'location': 'coordinates',
+    'detail': 'true',
+    'metricWind': 'km/h',
+    'metricTemp': '°C',
+    'radarRange': '-1',
+  });
 }
 
 class EmptyMessage extends StatelessWidget {
@@ -82,6 +112,388 @@ class SectionTitle extends StatelessWidget {
 
 class WeatherScreen extends StatelessWidget {
   const WeatherScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final state = context.watch<AppState>();
+    if ((state.locating || state.weatherLoading) && state.weather == null) {
+      return const Center(child: CircularProgressIndicator.adaptive());
+    }
+    if (state.locationError != null && state.weather == null) {
+      return const EmptyMessage(
+        Icons.location_off_outlined,
+        'Turn on location',
+        'Kalasag uses your location to show nearby weather and center the map.',
+      );
+    }
+    if (state.weatherError != null && state.weather == null) {
+      return const EmptyMessage(
+        Icons.cloud_off_outlined,
+        'Weather is temporarily unavailable',
+        'Check your connection, then pull down to try again.',
+      );
+    }
+    final weather = state.weather;
+    if (weather == null) {
+      return const EmptyMessage(
+        Icons.cloud_off_outlined,
+        'No saved forecast yet',
+        'Connect once to load weather for your area.',
+      );
+    }
+
+    final current = weather.current;
+    final hourly = weather.hourly;
+    final daily = weather.daily;
+    final times = List<dynamic>.from(hourly['time'] ?? []);
+    final currentTime = '${current['time']}';
+    final start = currentTime.length >= 13
+        ? times.indexWhere(
+            (item) => '$item'.startsWith(currentTime.substring(0, 13)),
+          )
+        : -1;
+    final from = start < 0 ? 0 : start;
+    final next = times.skip(from).take(8).toList();
+    final demoAlerts =
+        state.alerts.isNotEmpty &&
+        state.alerts.every((alert) => alert.source == 'OFFLINE DEMO');
+    final currentAlert = state.alerts.isEmpty ? null : state.alerts.first;
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        await Future.wait([state.refreshWeather(), state.refreshAlerts()]);
+      },
+      child: ListView(
+        padding: KalasagSpace.page,
+        children: [
+          KalasagPageHeader(
+            title: 'Today',
+            subtitle: state.location?.label ?? 'Current location',
+            action: IconButton.filledTonal(
+              tooltip: 'Refresh weather',
+              onPressed: state.weatherLoading ? null : state.refreshWeather,
+              icon: state.weatherLoading
+                  ? const SizedBox.square(
+                      dimension: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.refresh_rounded),
+            ),
+          ),
+          _CurrentWeatherCard(
+            condition: weather.condition,
+            temperature: value(current['temperature_2m'], '°'),
+            feelsLike: value(current['apparent_temperature'], '°'),
+            code: current['weather_code'],
+            updated: relative(state.weatherUpdated),
+          ),
+          const SizedBox(height: KalasagSpace.md),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 18),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _Metric(
+                      Icons.water_drop_outlined,
+                      'Humidity',
+                      value(current['relative_humidity_2m'], '%'),
+                    ),
+                  ),
+                  const SizedBox(height: 52, child: VerticalDivider()),
+                  Expanded(
+                    child: _Metric(
+                      Icons.air_rounded,
+                      'Wind',
+                      value(current['wind_speed_10m'], ' km/h'),
+                    ),
+                  ),
+                  const SizedBox(height: 52, child: VerticalDivider()),
+                  Expanded(
+                    child: _Metric(
+                      Icons.umbrella_outlined,
+                      'Rain',
+                      current['precipitation'] is num
+                          ? '${(current['precipitation'] as num).toStringAsFixed(1)} mm'
+                          : 'N/A',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SectionTitle('Safety overview'),
+          if (currentAlert == null)
+            const KalasagNotice(
+              icon: Icons.verified_user_outlined,
+              title: 'No advisories to display',
+              message:
+                  'Keep monitoring official local updates as conditions change.',
+              color: KalasagTheme.success,
+            )
+          else
+            Card(
+              child: InkWell(
+                borderRadius: BorderRadius.circular(KalasagRadius.md),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => AlertDetailScreen(currentAlert),
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(KalasagSpace.lg),
+                  child: Row(
+                    children: [
+                      Icon(
+                        demoAlerts
+                            ? Icons.science_outlined
+                            : Icons.warning_amber_rounded,
+                        color: demoAlerts
+                            ? Theme.of(context).colorScheme.primary
+                            : KalasagTheme.warning,
+                      ),
+                      const SizedBox(width: KalasagSpace.md),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              demoAlerts
+                                  ? 'Demo advisory'
+                                  : currentAlert.severity,
+                              style: Theme.of(context).textTheme.labelLarge,
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              currentAlert.title,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.chevron_right_rounded),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          const SectionTitle('Quick access'),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const RadarScreen()),
+                  ),
+                  icon: const Icon(Icons.radar_rounded),
+                  label: const Text('Weather map'),
+                ),
+              ),
+              const SizedBox(width: KalasagSpace.sm),
+              Expanded(
+                child: FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: KalasagTheme.danger,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const EmergencyScreen()),
+                  ),
+                  icon: const Icon(Icons.sos_rounded),
+                  label: const Text('Emergency'),
+                ),
+              ),
+            ],
+          ),
+          const SectionTitle('Next hours'),
+          SizedBox(
+            height: 126,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: next.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 9),
+              itemBuilder: (_, index) {
+                final hourlyIndex = from + index;
+                return Container(
+                  width: 80,
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 12,
+                    horizontal: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: index == 0
+                        ? Theme.of(context).colorScheme.primaryContainer
+                        : Theme.of(context).colorScheme.surface,
+                    border: Border.all(color: Theme.of(context).dividerColor),
+                    borderRadius: BorderRadius.circular(KalasagRadius.md),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        index == 0
+                            ? 'Now'
+                            : DateFormat.j().format(
+                                DateTime.parse('${next[index]}'),
+                              ),
+                        style: Theme.of(context).textTheme.labelMedium,
+                      ),
+                      Icon(
+                        weatherIcon(
+                          (hourly['weather_code'] as List?)?[hourlyIndex],
+                        ),
+                      ),
+                      Text(
+                        value(
+                          (hourly['temperature_2m'] as List?)?[hourlyIndex],
+                          '°',
+                        ),
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      Text(
+                        '${value((hourly['precipitation_probability'] as List?)?[hourlyIndex], '%')} rain',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+          const SectionTitle('3-day outlook'),
+          Card(
+            child: Column(
+              children: List.generate(
+                (daily['time'] as List? ?? []).take(3).length,
+                (index) => ListTile(
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 3,
+                  ),
+                  leading: Icon(
+                    weatherIcon((daily['weather_code'] as List?)?[index]),
+                  ),
+                  title: Text(
+                    DateFormat.EEEE().format(
+                      DateTime.parse('${daily['time'][index]}'),
+                    ),
+                  ),
+                  subtitle: Text(
+                    '${value(daily['precipitation_sum'][index], ' mm')} expected rain',
+                  ),
+                  trailing: Text(
+                    '${value(daily['temperature_2m_max'][index], '°')} / ${value(daily['temperature_2m_min'][index], '°')}',
+                    style: Theme.of(context).textTheme.labelLarge,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: KalasagSpace.lg),
+          Text(
+            'Forecast data: Open-Meteo • Updated ${relative(state.weatherUpdated)}',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CurrentWeatherCard extends StatelessWidget {
+  const _CurrentWeatherCard({
+    required this.condition,
+    required this.temperature,
+    required this.feelsLike,
+    required this.code,
+    required this.updated,
+  });
+  final String condition, temperature, feelsLike, updated;
+  final dynamic code;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    label: '$condition, $temperature, feels like $feelsLike',
+    child: Container(
+      height: 220,
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(KalasagRadius.lg),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF1769D2), Color(0xFF0E7180), Color(0xFF102A43)],
+        ),
+        image: const DecorationImage(
+          image: AssetImage('assets/mascot/kalasag-weather.png'),
+          fit: BoxFit.cover,
+          opacity: .25,
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x33102A43),
+            blurRadius: 24,
+            offset: Offset(0, 12),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const KalasagStatusPill(
+                label: 'Current conditions',
+                icon: Icons.schedule_rounded,
+                color: Colors.white,
+              ),
+              const Spacer(),
+              Icon(weatherIcon(code), color: Colors.white, size: 42),
+            ],
+          ),
+          const Spacer(),
+          Text(
+            temperature,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 62,
+              height: 1,
+              fontWeight: FontWeight.w300,
+              letterSpacing: -3,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            condition,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 21,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          Text(
+            'Feels like $feelsLike • Updated $updated',
+            style: const TextStyle(color: Color(0xFFDCEBFA)),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+// Kept temporarily as a migration reference while the new dashboard is
+// validated against existing weather-data behavior.
+// ignore: unused_element
+class _LegacyWeatherScreen extends StatelessWidget {
+  // ignore: unused_element_parameter
+  const _LegacyWeatherScreen({super.key});
   @override
   Widget build(BuildContext context) {
     final s = context.watch<AppState>();
@@ -356,6 +768,9 @@ class _AlertsScreenState extends State<AlertsScreen> {
     final data = filter == 'all'
         ? s.alerts
         : s.alerts.where((a) => a.category == filter).toList();
+    final demoData =
+        s.alerts.isNotEmpty &&
+        s.alerts.every((alert) => alert.source == 'OFFLINE DEMO');
     if (s.alertsLoading && s.alerts.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -382,7 +797,11 @@ class _AlertsScreenState extends State<AlertsScreen> {
                       style: Theme.of(context).textTheme.headlineMedium
                           ?.copyWith(fontWeight: FontWeight.bold),
                     ),
-                    Text('Live • Updated ${relative(s.alertsUpdated)}'),
+                    Text(
+                      demoData
+                          ? 'Practice data • Updated ${relative(s.alertsUpdated)}'
+                          : 'Official sources • Updated ${relative(s.alertsUpdated)}',
+                    ),
                   ],
                 ),
               ),
@@ -419,7 +838,9 @@ class _AlertsScreenState extends State<AlertsScreen> {
                 child: SizedBox(
                   width: 190,
                   child: Text(
-                    '${s.alerts.length} active reports\nStay alert and follow official advice.',
+                    demoData
+                        ? 'Practice advisories\nExplore the alert experience safely.'
+                        : '${s.alerts.length} active reports\nFollow official local advice.',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 18,
@@ -459,8 +880,8 @@ class _AlertsScreenState extends State<AlertsScreen> {
           if (data.isEmpty)
             const EmptyMessage(
               Icons.shield_outlined,
-              'Walang naitalang sakuna ngayon. Ligtas ang araw!',
-              'We will keep watching for official updates.',
+              'No advisories match this filter',
+              'Try another category or refresh for new information.',
             ),
           ...data.map((a) => _AlertCard(a)),
         ],
@@ -611,11 +1032,258 @@ class AlertDetailScreen extends StatelessWidget {
 
 class RadarScreen extends StatefulWidget {
   const RadarScreen({super.key});
+
   @override
   State<RadarScreen> createState() => _RadarScreenState();
 }
 
 class _RadarScreenState extends State<RadarScreen> {
+  static const _layers = <String, (String, IconData)>{
+    'rain': ('Rain', Icons.water_drop_outlined),
+    'wind': ('Wind', Icons.air_rounded),
+    'temp': ('Temperature', Icons.thermostat_rounded),
+    'clouds': ('Clouds', Icons.cloud_outlined),
+  };
+
+  late final WebViewController _controller;
+  String _overlay = 'rain';
+  String? _loadedSignature;
+  String? _scheduledSignature;
+  int _progress = 0;
+  bool _failed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setBackgroundColor(const Color(0xFF102A43))
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onProgress: (value) {
+            if (mounted) setState(() => _progress = value);
+          },
+          onPageStarted: (_) {
+            if (mounted) setState(() => _failed = false);
+          },
+          onWebResourceError: (error) {
+            if (error.isForMainFrame == true && mounted) {
+              setState(() => _failed = true);
+            }
+          },
+        ),
+      );
+  }
+
+  void _ensureLoaded(GeoPoint point) {
+    final signature = '${point.latitude}:${point.longitude}:$_overlay';
+    if (_loadedSignature == signature || _scheduledSignature == signature) {
+      return;
+    }
+    _scheduledSignature = signature;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _scheduledSignature != signature) return;
+      _loadedSignature = signature;
+      _scheduledSignature = null;
+      _controller.loadRequest(
+        buildWindyEmbedUri(point: point, overlay: _overlay),
+      );
+    });
+  }
+
+  void _showMapInfo() {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 4, 24, 28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'About this map',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              'Use Windy’s play/pause control and timeline inside the map to animate genuine forecast frames. '
+              'The selected layer, time indicator, legend, and map update together.',
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              'Forecast playback is model guidance, not historical radar observation. '
+              'Always follow official local advisories.',
+            ),
+            const SizedBox(height: 14),
+            const KalasagStatusPill(
+              label: 'Interactive forecast by Windy',
+              icon: Icons.open_in_new_rounded,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = context.watch<AppState>();
+    final point = state.location;
+    if (point == null) {
+      return EmptyMessage(
+        Icons.location_off_outlined,
+        'Location needed',
+        state.locationError ?? 'Enable location to center the weather map.',
+      );
+    }
+    _ensureLoaded(point);
+    final canPop = Navigator.of(context).canPop();
+    return Scaffold(
+      body: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 6, 12, 4),
+              child: Row(
+                children: [
+                  if (canPop)
+                    IconButton(
+                      tooltip: 'Back',
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.arrow_back_rounded),
+                    )
+                  else
+                    const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Weather map',
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                        Text(
+                          point.label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Map information',
+                    onPressed: _showMapInfo,
+                    icon: const Icon(Icons.info_outline_rounded),
+                  ),
+                  IconButton(
+                    tooltip: 'Refresh map',
+                    onPressed: _controller.reload,
+                    icon: const Icon(Icons.refresh_rounded),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(
+              height: 54,
+              child: ListView.separated(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 5,
+                ),
+                scrollDirection: Axis.horizontal,
+                itemCount: _layers.length,
+                separatorBuilder: (_, _) => const SizedBox(width: 8),
+                itemBuilder: (context, index) {
+                  final entry = _layers.entries.elementAt(index);
+                  return ChoiceChip(
+                    avatar: Icon(entry.value.$2, size: 18),
+                    label: Text(entry.value.$1),
+                    selected: _overlay == entry.key,
+                    onSelected: (_) => setState(() {
+                      _overlay = entry.key;
+                      _loadedSignature = null;
+                    }),
+                  );
+                },
+              ),
+            ),
+            Expanded(
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: WebViewWidget(controller: _controller),
+                  ),
+                  if (_progress < 100 && !_failed)
+                    Align(
+                      alignment: Alignment.topCenter,
+                      child: LinearProgressIndicator(value: _progress / 100),
+                    ),
+                  if (_failed)
+                    Positioned.fill(
+                      child: ColoredBox(
+                        color: Theme.of(context).scaffoldBackgroundColor,
+                        child: Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(28),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.cloud_off_outlined, size: 48),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'Weather map unavailable',
+                                  style: Theme.of(context).textTheme.titleLarge,
+                                ),
+                                const SizedBox(height: 6),
+                                const Text(
+                                  'Check your connection and try loading the map again.',
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 16),
+                                FilledButton.icon(
+                                  onPressed: _controller.reload,
+                                  icon: const Icon(Icons.refresh_rounded),
+                                  label: const Text('Try again'),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  Positioned(
+                    left: 12,
+                    top: 12,
+                    child: IgnorePointer(
+                      child: KalasagStatusPill(
+                        label: '${_layers[_overlay]!.$1} forecast',
+                        icon: Icons.play_circle_outline_rounded,
+                        color: const Color(0xFF102A43),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Kept temporarily as a migration reference for the original Windy embed.
+// ignore: unused_element
+class _LegacyRadarScreen extends StatefulWidget {
+  // ignore: unused_element_parameter
+  const _LegacyRadarScreen({super.key});
+  @override
+  State<_LegacyRadarScreen> createState() => _LegacyRadarScreenState();
+}
+
+class _LegacyRadarScreenState extends State<_LegacyRadarScreen> {
   WebViewController? controller;
   String overlay = 'rain';
   @override
@@ -721,15 +1389,13 @@ class ReadyScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Hive offline storage',
+                        'Available offline',
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
-                      Text(s.storageLastOperation),
-                      const SizedBox(height: 3),
                       Text(
                         s.storageError == null
-                            ? 'Data stays available without internet'
-                            : 'The app remains usable; try saving again.',
+                            ? 'Your checklist and plan stay on this device.'
+                            : 'Some changes may not be saved. Try again.',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],

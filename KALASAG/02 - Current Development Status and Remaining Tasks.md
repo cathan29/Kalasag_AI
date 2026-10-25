@@ -5,9 +5,9 @@
 | Feature | Current status | Problems found | Required action | Priority |
 |---|---|---|---|---|
 | Authentication | Partial demo | Any valid email and six-character password enters; no identity provider, registration, recovery, profile, session, or logout | Select and configure a real backend, then add full account lifecycle | High |
-| Dashboard and weather | Implemented, partially verified | Live Open-Meteo and GPS exist; needs real-device permission and offline-state testing | Test permissions, network loss, refresh, and text scaling | High |
+| Dashboard and weather | Redesigned and device verified | Safety-first hierarchy, concise attribution, demo-alert labeling, quick actions, hourly and daily forecast are implemented | Complete large-text, offline, and permission-denial testing | High |
 | Alerts | Partial | Clearly labeled offline demo records are the default; live providers require a build flag | Validate providers and present provenance and freshness consistently | High |
-| Weather map | Partial | Embedded Windy web page depends on network and external behavior | Real-device interaction and failure testing | High |
+| Weather map | Redesigned, partially verified | Supported Windy embed, real forecast playback control, four actual layers, legend, loading/error state, and unobstructed map are implemented; it remains network/external-service dependent | Manually verify a complete play/pause/seek cycle and each layer under stable network | High |
 | Preparedness hub | Implemented, partially verified | Local guides, go-bag, family plan, hotlines, and shelter search exist | Content review against current official sources and offline manual testing | Critical |
 | Emergency contacts | Implemented in this audit | Persistent CRUD, validation, duplicate prevention, delete confirmation, and guarded dialer added | Widget and physical-device tests | Critical |
 | SOS flashlight | Implemented, device test blocked | Android native torch control and cleanup added | Test permission denial, unavailable flash, and lifecycle on a phone | Critical |

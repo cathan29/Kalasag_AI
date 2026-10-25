@@ -8,7 +8,7 @@
 
 **ISSUES FIXED:** Missing custom emergency contacts, missing flashlight, missing whistle, incomplete call failure feedback, and absent contact validation and duplicate protection.
 
-**TEST RESULTS:** Flutter analysis passed. All 23 Flutter tests and all 4 backend tests passed. Node syntax checks passed and the production dependency audit found zero vulnerabilities. Debug assembly and device installation passed. Flutter doctor reports no issues. The AI entry point and unconfigured chat sheet were smoke-tested on an Infinix X6833B; disruptive torch, whistle, and dialer actions remain for supervised manual testing.
+**TEST RESULTS:** Flutter analysis passed. All 25 Flutter tests and all 4 backend tests passed. Node syntax checks passed and the production dependency audit found zero vulnerabilities. Debug assembly and device installation passed. Flutter doctor reports no issues. The redesigned dashboard and Windy map were physically inspected on an Infinix X6833B; a complete timed playback cycle plus disruptive torch, whistle, and dialer actions remain for supervised manual testing.
 
 **BACKEND STATUS:** A stateless, production-authenticated Gemini proxy is implemented and tested, but it is not deployed or credentialed. No application identity provider or general synchronization backend is configured. Local Hive persistence is implemented.
 
@@ -22,7 +22,7 @@
 
 **GIT STATUS:** Local `main` repository created with audited baseline commit `3f213ce`. GitHub remote creation/push is pending because neither GitHub CLI nor a confirmed GitHub connection is available.
 
-**REMAINING ISSUES:** Real authentication and profile, logout/session lifecycle, Gemini credentials and proxy deployment, live AI acceptance/safety testing, live alert validation, push delivery, production signing, disruptive hardware/manual permission paths, accessibility testing, and a release build.
+**REMAINING ISSUES:** Real authentication/profile, logout/session lifecycle, Gemini credentials and proxy deployment, live AI acceptance testing, live alert validation, full Windy playback timing verification, push delivery, production signing, disruptive hardware/manual permission paths, comprehensive large-text/TalkBack testing, and a release build.
 
 **NEXT ACTIONS:** Configure Firebase Authentication, deploy the AI proxy with managed secrets, perform live English/Filipino safety tests, complete supervised torch/whistle/dialer checks, and connect GitHub to push the private repository.
 
