@@ -5,6 +5,7 @@ import 'app_state.dart';
 import 'screens.dart';
 import 'sos_features.dart';
 import 'theme.dart';
+import 'ai/kalasag_ai_fab.dart';
 
 class EmergencyScreen extends StatefulWidget {
   const EmergencyScreen({super.key});
@@ -515,5 +516,6 @@ class _HomeShellState extends State<HomeShell> {
         ),
       ],
     ),
+    floatingActionButton: index == 4 ? null : const KalasagAiFab(),
   );
 }

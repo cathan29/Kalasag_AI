@@ -49,3 +49,15 @@
 - Added three new automated checks; all 12 tests pass.
 - Physically verified the Ready entry, warning, and Earthquake response on the Infinix device.
 
+### Implemented Gemini AI Survival Assistant
+
+- Added a global, accessible bottom-right assistant button on all non-SOS tabs.
+- Added a responsive chat sheet with the required welcome copy, four quick prompts, Markdown messages, timestamps, typing/cancel/retry/clear controls, persistent history, keyboard-safe layout, and offline-guide fallback.
+- Added typed error handling for missing setup, authentication, connectivity, timeout, rate limit, quota, safety, malformed response, and server failures.
+- Added a secure Node.js proxy using Firebase ID-token verification, server-only Gemini secrets, rate limiting, Helmet, bounded requests/responses, provider timeouts, sanitized logging/errors, and signed per-user conversation context.
+- Added an English/Filipino disaster-safety policy that forbids fabricated live conditions, responder contacts, locations, citations, and medical diagnosis.
+- Selected `gemini-3.5-flash-lite` as the configurable default and used the Gemini Interactions API for multi-turn continuity.
+- Added 11 Flutter AI tests and 4 backend tests. All 23 Flutter tests and all backend checks pass; the production dependency audit reports zero vulnerabilities.
+- Rebuilt and installed the debug APK. Physically verified the global entry point and complete unconfigured-state chat sheet on the Infinix X6833B.
+- Live Gemini validation remains explicitly blocked until credentials, HTTPS deployment, Firebase configuration, and real authentication are supplied.
+

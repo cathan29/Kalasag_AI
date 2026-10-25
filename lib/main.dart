@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'ai/ai_chat_controller.dart';
+import 'ai/ai_chat_service.dart';
+import 'ai/ai_chat_storage.dart';
 import 'app_state.dart';
 import 'login_screen.dart';
 import 'theme.dart';
@@ -9,8 +12,19 @@ void main() {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => AppState()..initialize(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AppState()..initialize()),
+        ChangeNotifierProvider(
+          create: (_) => AiChatController(
+            service: GeminiProxyChatService(
+              config: AiServiceConfig.fromEnvironment(),
+            ),
+            store: HiveAiChatStore(),
+            connectivity: PluginAiConnectivity(),
+          )..initialize(),
+        ),
+      ],
       child: const KalasagApp(),
     ),
   );

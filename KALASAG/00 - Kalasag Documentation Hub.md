@@ -16,6 +16,7 @@ Kalasag is an Android-focused disaster-readiness application. This vault records
 - [[08 - Bugs Fixes and Change Log]]
 - [[09 - Final Project Completion Report]]
 - [[10 - GitHub and Android Development Environment]]
+- [[11 - Gemini AI Assistant]]
 
 ## Status legend
 

@@ -18,6 +18,8 @@ This folder is the standalone Flutter migration of the original React Native app
 - Persistent custom emergency contacts with add, edit, delete, validation, and guarded dialer opening
 - Android-native SOS flashlight and repeating emergency alert sound with lifecycle cleanup
 - Offline rule-based safety guide with urgent escalation and disaster quick prompts
+- Global Kalasag AI chat sheet with suggested questions, Markdown responses, local history, retry/cancel controls, and offline-guide fallback
+- Secure Node.js Gemini proxy with Firebase ID-token verification, rate limiting, signed conversation context, and sanitized errors
 - Light/dark themes and Android/iOS location configuration
 
 ## Run
@@ -46,6 +48,27 @@ flutter build apk --debug
 
 The generated debug APK is at `build/app/outputs/flutter-apk/app-debug.apk`.
 
+## Kalasag AI setup
+
+The Flutter app never contains a Gemini API key. Copy `backend/.env.example` to an untracked `backend/.env`, configure the server-side values, and follow `backend/README.md`. Production requests require a Firebase Authentication ID token and an HTTPS proxy deployment.
+
+Run the Flutter client against that deployment with:
+
+```powershell
+flutter run --dart-define=KALASAG_AI_BASE_URL=https://your-private-proxy.example
+```
+
+The current demo login does not issue Firebase credentials, so production AI requests intentionally fail closed until real authentication is connected. For isolated local development only, the proxy and app support an unauthenticated development switch; both sides must opt in, and the server refuses this mode when `NODE_ENV=production`.
+
+Backend verification:
+
+```powershell
+npm install --prefix backend
+npm run check --prefix backend
+npm test --prefix backend
+npm audit --omit=dev --prefix backend
+```
+
 ## Notes
 
 - Email/password sign-in is currently a local demo entry flow and does not authenticate against a backend. Google and Facebook authentication are not implemented yet.
@@ -53,4 +76,5 @@ The generated debug APK is at `build/app/outputs/flutter-apk/app-debug.apk`.
 - Alert preferences are persisted. OS background/push delivery still requires a production notification provider or backend. Live alert refresh is available only when `ENABLE_LIVE_ALERT_APIS=true` is supplied.
 - Windy is embedded through its public map page, matching the network-dependent radar behavior of the original app.
 - The app has been built, installed, launched, and navigated on an authorized Infinix X6833B running Android 14. Disruptive actions (placing calls, sounding the whistle, and toggling the torch) still require supervised manual verification. Neither tool contacts responders automatically.
-- The offline safety guide is bundled guidance, not live or official advice and not an online AI service. A secure server-side provider is still required for the proposed online assistant.
+- The online assistant UI and secure proxy are implemented, but no live Gemini request has been claimed or verified because production credentials, deployment, Firebase configuration, and real app authentication have not been supplied.
+- The bundled offline safety guide remains available when the assistant is offline or unavailable. Neither assistant is an official emergency response service.

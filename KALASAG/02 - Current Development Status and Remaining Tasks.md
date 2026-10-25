@@ -12,8 +12,8 @@
 | Emergency contacts | Implemented in this audit | Persistent CRUD, validation, duplicate prevention, delete confirmation, and guarded dialer added | Widget and physical-device tests | Critical |
 | SOS flashlight | Implemented, device test blocked | Android native torch control and cleanup added | Test permission denial, unavailable flash, and lifecycle on a phone | Critical |
 | Emergency whistle | Implemented, device test blocked | Android repeating alert tone and cleanup added | Test volume, backgrounding, interruptions, and stop behavior on a phone | Critical |
-| Safety assistant | Offline fallback implemented | Bundled rule-based guidance is physically verified; no online AI provider or server endpoint | Provide a secure server-side provider for online responses; never place a private key in Flutter | High |
-| Backend | Missing for accounts and sync | Hive is local only | Choose backend only after requirements and credentials are available | Critical |
+| Safety assistant | Client and secure proxy implemented; live provider blocked | Global chat UI, persistence, multi-turn context, safety policy, offline fallback, and errors are tested; no credentials/deployment or real Firebase session exist | Configure Firebase Authentication, deploy the proxy, supply secrets server-side, and perform a real-request acceptance test | High |
+| Backend | AI proxy implemented; account/sync backend incomplete | Gemini proxy is stateless and authenticated in production; app login is still a local demo and Hive remains local only | Connect real Firebase Authentication and separately design user data synchronization | Critical |
 | Offline persistence | Implemented, partially verified | Hive stores readiness data and contacts; no automated restart integration test | Add integration test and test migration/corruption handling | Critical |
 | Android device integration | Implemented, partially verified | Authorized Infinix X6833B detected; build/install/launch, login, weather, alerts, and offline guide verified | Manually verify disruptive torch, whistle, and dialer actions plus denial/lifecycle paths | Critical |
 
@@ -21,9 +21,9 @@
 
 1. Manually verify contacts, dialer, torch, whistle, embedded radar, lifecycle, and permission-denial paths on the connected phone.
 2. Connect GitHub tooling, create the private `kalasag-app` repository, and push `main`.
-3. Decide the authentication/backend provider and supply development configuration without committing secrets.
-4. Implement registration, recovery, persistent session, logout, emergency profile, and user-scoped remote data.
-5. Add the online AI assistant through a secure server-side endpoint while retaining the verified offline fallback.
+3. Configure Firebase Authentication, replace the demo login, and provide server deployment configuration without committing secrets.
+4. Deploy the Gemini proxy, connect Firebase ID tokens, and complete a live English/Filipino multi-turn acceptance test.
+5. Implement registration, recovery, persistent session, logout, emergency profile, and user-scoped remote data.
 6. Review all preparedness and hotline content with current authoritative sources.
 7. Add integration coverage for Hive restart persistence, corruption, denial paths, offline mode, and large text.
 8. Configure production signing and build a release artifact.

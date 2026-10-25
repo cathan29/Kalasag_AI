@@ -14,7 +14,13 @@ Users can also open Safety tools. The flashlight requests Android camera permiss
 
 Bundled preparedness guides and hotlines load from assets. Hive persists saved places, go-bag state, family plan, alert preferences, and emergency contacts. The Ready tab also opens an offline safety guide with earthquake, flood, typhoon, fire, evacuation, and basic first-aid responses. It escalates urgent phrases toward emergency services and is explicitly labeled as bundled, non-live, non-official guidance.
 
-Live weather, live alert providers, shelter search, radar, directions, and a future online AI assistant require network access. No private AI key is embedded in Flutter.
+Live weather, live alert providers, shelter search, radar, directions, and online AI responses require network access. No private AI key is embedded in Flutter.
+
+## Kalasag AI flow
+
+The AI floating action button appears on the four informational tabs and stays hidden on SOS so it cannot cover emergency controls. It opens a keyboard-safe bottom sheet containing a welcome/disclaimer card, four disaster prompts, timestamped user/assistant bubbles, Markdown rendering, a bounded composer, typing state, cancel, retry, clear-history confirmation, and a direct offline-guide action.
+
+Chat history is stored locally and survives sheet dismissal or app backgrounding. The backend receives only the latest question and an opaque, signed conversation token; it does not store or log message content. Missing configuration, authentication, offline state, timeouts, quota/rate limits, safety blocks, invalid responses, and server failures are surfaced as distinct user-safe states.
 
 ## Implemented screens
 
@@ -26,4 +32,5 @@ Live weather, live alert providers, shelter search, radar, directions, and a fut
 - Custom emergency contacts
 - Flashlight and emergency alert sound
 - Offline safety guide with quick prompts and urgent escalation
+- Kalasag AI assistant UI with persistent chat, multi-turn proxy context, safety boundaries, and offline fallback
 

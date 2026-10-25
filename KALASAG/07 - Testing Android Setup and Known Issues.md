@@ -5,7 +5,8 @@
 | Check | Result | Evidence |
 |---|---|---|
 | Flutter analysis | PASS | `flutter analyze --no-pub`: no issues found |
-| Automated tests | PASS | 12 tests passed |
+| Automated Flutter tests | PASS | 23 tests passed, including AI controller, service, storage, widget, error, retry, and Markdown behavior |
+| Backend checks | PASS | Node syntax checks and 4 tests passed; production dependency audit found 0 vulnerabilities |
 | Dependency resolution | PASS | `flutter pub get`: dependencies resolved; 33 constrained updates are available |
 | Flutter doctor | PASS | No issues found; command-line tools 22.0 installed and all Android SDK licenses accepted |
 | Contact model tests | PASS | Normalization, valid lengths, JSON round trip |
@@ -16,7 +17,9 @@
 | Physical torch and whistle | NOT RUN | Connected phone available; disruptive actions intentionally require supervised manual verification |
 | Dialer launch | NOT RUN | Connected phone available; avoid opening or placing calls without supervised verification |
 | End-to-end authentication | BLOCKED | No authentication backend exists |
-| Online AI assistant | BLOCKED | Offline fallback exists; secure provider/server endpoint is not configured |
+| AI client and proxy contract | PASS | Proxy/client tests cover authentication failure, no client key, signed context, quota mapping, retry, offline, persistence, and HTTP response contract |
+| Physical AI UI smoke test | PASS | Global FAB, setup status, exact welcome/disclaimer, four prompts, composer, and close control verified on Infinix X6833B |
+| Live Gemini response | BLOCKED | No Gemini key, deployed HTTPS proxy, Firebase project, or real app ID token was supplied; no live response is claimed |
 
 ## Android setup
 
@@ -41,7 +44,7 @@ Android command-line tools 22.0 are installed at the standard `cmdline-tools/lat
 ## Known issues and limitations
 
 - Demo login only; no registration, recovery, session, logout, or emergency profile.
-- No online AI provider or secure assistant endpoint; the offline rule-based fallback is implemented.
+- AI UI and secure proxy are implemented, but production credentials, Firebase app authentication, deployment, and a live provider acceptance test remain outstanding.
 - No remote backend or synchronization.
 - Live alerts are disabled by default.
 - Radar depends on an external web page.
