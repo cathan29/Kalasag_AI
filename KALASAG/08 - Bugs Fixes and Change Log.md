@@ -29,5 +29,23 @@
 - Flutter analysis passed with no issues.
 - All 9 automated tests passed.
 - Android debug build passed and produced `build/app/outputs/flutter-apk/app-debug.apk`.
-- Physical-device tests remain blocked as recorded in [[07 - Testing Android Setup and Known Issues]].
+- Physical-device smoke tests are now recorded in [[07 - Testing Android Setup and Known Issues]].
+
+### Established source control and Android device development
+
+- Audited the tree for secrets and machine-local files before staging.
+- Strengthened `.gitignore` for environment files, signing material, service configuration, local Obsidian session state, generated output, and personal submission bundles.
+- Initialized Git on `main` and created baseline commit `3f213ce` (`chore: establish Kalasag development baseline`).
+- Installed checksum-verified Android command-line tools 22.0 and accepted all required SDK licenses.
+- Cleared all `flutter doctor -v` issues.
+- Detected and authorized Infinix X6833B on Android 14/API 34.
+- Built, installed, launched, and smoke-tested the app on the phone.
+
+### Added offline safety guide
+
+- Added deterministic offline guidance for earthquakes, floods, typhoons, fire, evacuation, and basic bleeding first aid.
+- Added urgent-phrase escalation and explicit non-live/non-official labeling.
+- Added a Ready-screen entry point and quick prompts.
+- Added three new automated checks; all 12 tests pass.
+- Physically verified the Ready entry, warning, and Earthquake response on the Infinix device.
 

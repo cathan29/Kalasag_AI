@@ -5,16 +5,18 @@
 | Check | Result | Evidence |
 |---|---|---|
 | Flutter analysis | PASS | `flutter analyze --no-pub`: no issues found |
-| Automated tests | PASS | 9 tests passed |
+| Automated tests | PASS | 12 tests passed |
 | Dependency resolution | PASS | `flutter pub get`: dependencies resolved; 33 constrained updates are available |
-| Flutter doctor | PARTIAL | Flutter SDK passes; Android cmdline-tools are missing and license status is unknown |
+| Flutter doctor | PASS | No issues found; command-line tools 22.0 installed and all Android SDK licenses accepted |
 | Contact model tests | PASS | Normalization, valid lengths, JSON round trip |
-| Debug APK build | PASS | Gradle `assembleDebug`: BUILD SUCCESSFUL; fresh APK created at 2026-10-25 19:39 |
-| Physical device detection | BLOCKED | `adb devices -l` returned no devices |
-| Physical torch and whistle | NOT RUN | Requires an Android phone |
-| Dialer launch | NOT RUN | Requires an Android phone with a dialer |
+| Debug APK build | PASS | Fresh debug APK built and installed on 2026-10-25 |
+| Physical device detection | PASS | Infinix X6833B, Android 14/API 34, ADB state `device` |
+| Physical app smoke test | PASS | Installed and launched `com.cathan.kalasag`; login validation/demo flow, weather, alerts, and offline guide rendered without app-scoped fatal errors |
+| Offline safety guide | PASS | Ready entry, warning label, and Earthquake response verified on device |
+| Physical torch and whistle | NOT RUN | Connected phone available; disruptive actions intentionally require supervised manual verification |
+| Dialer launch | NOT RUN | Connected phone available; avoid opening or placing calls without supervised verification |
 | End-to-end authentication | BLOCKED | No authentication backend exists |
-| AI assistant | BLOCKED | Feature and secure server endpoint do not exist |
+| Online AI assistant | BLOCKED | Offline fallback exists; secure provider/server endpoint is not configured |
 
 ## Android setup
 
@@ -24,7 +26,7 @@
 - Java target: 17
 - Required permissions: internet, network state, fine/coarse location, and camera for torch access
 
-Install Android SDK command-line tools and run `flutter doctor --android-licenses` before release/device setup. The current project can still assemble a debug APK, but the doctor warning should be cleared.
+Android command-line tools 22.0 are installed at the standard `cmdline-tools/latest` location. The downloaded official package matched SHA-256 `90ae805d20434428bffcb699c290860f19bb5f66a67e6b330067e3de801fb04a`. All Android SDK licenses are accepted and `flutter doctor -v` reports no issues.
 
 ## Device procedure
 
@@ -39,13 +41,13 @@ Install Android SDK command-line tools and run `flutter doctor --android-license
 ## Known issues and limitations
 
 - Demo login only; no registration, recovery, session, logout, or emergency profile.
-- No AI assistant.
+- No online AI provider or secure assistant endpoint; the offline rule-based fallback is implemented.
 - No remote backend or synchronization.
 - Live alerts are disabled by default.
 - Radar depends on an external web page.
 - Notification settings do not provide OS push delivery.
 - Gradle reports deprecated features that will need attention before a future Gradle 10 migration.
-- Flutter doctor reports missing Android command-line tools and unknown Android license status.
 - Thirty-three dependency updates are outside current constraints and require deliberate compatibility review rather than a bulk upgrade.
-- No device was attached, so hardware behavior remains unverified.
+- Initial device launch logged Infinix vendor GPU-format warnings and a slow first frame; the UI still rendered and no Flutter fatal error was found.
+- Torch, whistle, dialer, denial, backgrounding, and interruption behavior remain manually unverified.
 

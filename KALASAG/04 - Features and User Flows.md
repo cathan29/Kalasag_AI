@@ -12,7 +12,9 @@ Users can also open Safety tools. The flashlight requests Android camera permiss
 
 ## Offline functionality
 
-Bundled preparedness guides and hotlines load from assets. Hive persists saved places, go-bag state, family plan, alert preferences, and emergency contacts. Live weather, live alert providers, shelter search, radar, directions, and any future AI assistant require network access.
+Bundled preparedness guides and hotlines load from assets. Hive persists saved places, go-bag state, family plan, alert preferences, and emergency contacts. The Ready tab also opens an offline safety guide with earthquake, flood, typhoon, fire, evacuation, and basic first-aid responses. It escalates urgent phrases toward emergency services and is explicitly labeled as bundled, non-live, non-official guidance.
+
+Live weather, live alert providers, shelter search, radar, directions, and a future online AI assistant require network access. No private AI key is embedded in Flutter.
 
 ## Implemented screens
 
@@ -23,4 +25,5 @@ Bundled preparedness guides and hotlines load from assets. Hive persists saved p
 - Verified hotline directory and first-aid guidance
 - Custom emergency contacts
 - Flashlight and emergency alert sound
+- Offline safety guide with quick prompts and urgent escalation
 

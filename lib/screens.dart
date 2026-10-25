@@ -9,6 +9,7 @@ import 'models.dart';
 import 'theme.dart';
 import 'extras.dart';
 import 'api_activity_screen.dart';
+import 'offline_safety_assistant.dart';
 
 String value(dynamic v, [String unit = '']) =>
     v is num ? '${v.round()}$unit' : 'N/A';
@@ -841,6 +842,25 @@ class ReadyScreen extends StatelessWidget {
                 const SizedBox(height: 10),
                 _PlanField('Medical notes', 'medicalNotes', s, lines: 3),
               ],
+            ),
+          ),
+        ),
+        const SectionTitle('Safety assistant'),
+        Card(
+          child: ListTile(
+            leading: const CircleAvatar(
+              child: Icon(Icons.support_agent_outlined),
+            ),
+            title: const Text('Offline safety guide'),
+            subtitle: const Text(
+              'Bundled disaster steps without internet or AI credentials',
+            ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const OfflineSafetyAssistantScreen(),
+              ),
             ),
           ),
         ),

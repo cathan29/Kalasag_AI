@@ -17,6 +17,7 @@ This folder is the standalone Flutter migration of the original React Native app
 - Offline verified hotline directory and first-aid/evacuation guides
 - Persistent custom emergency contacts with add, edit, delete, validation, and guarded dialer opening
 - Android-native SOS flashlight and repeating emergency alert sound with lifecycle cleanup
+- Offline rule-based safety guide with urgent escalation and disaster quick prompts
 - Light/dark themes and Android/iOS location configuration
 
 ## Run
@@ -51,4 +52,5 @@ The generated debug APK is at `build/app/outputs/flutter-apk/app-debug.apk`.
 - The Android wrapper uses Gradle 9.1 because this development machine currently uses Java 25.
 - Alert preferences are persisted. OS background/push delivery still requires a production notification provider or backend. Live alert refresh is available only when `ENABLE_LIVE_ALERT_APIS=true` is supplied.
 - Windy is embedded through its public map page, matching the network-dependent radar behavior of the original app.
-- Flashlight and emergency sound behavior must be verified on a physical Android device. Neither tool contacts responders.
+- The app has been built, installed, launched, and navigated on an authorized Infinix X6833B running Android 14. Disruptive actions (placing calls, sounding the whistle, and toggling the torch) still require supervised manual verification. Neither tool contacts responders automatically.
+- The offline safety guide is bundled guidance, not live or official advice and not an online AI service. A secure server-side provider is still required for the proposed online assistant.

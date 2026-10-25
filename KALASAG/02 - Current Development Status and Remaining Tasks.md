@@ -12,18 +12,19 @@
 | Emergency contacts | Implemented in this audit | Persistent CRUD, validation, duplicate prevention, delete confirmation, and guarded dialer added | Widget and physical-device tests | Critical |
 | SOS flashlight | Implemented, device test blocked | Android native torch control and cleanup added | Test permission denial, unavailable flash, and lifecycle on a phone | Critical |
 | Emergency whistle | Implemented, device test blocked | Android repeating alert tone and cleanup added | Test volume, backgrounding, interruptions, and stop behavior on a phone | Critical |
-| AI assistant | Missing | No chat UI, secure server, or API integration | Provide a server-side provider and safety policy; never place a private key in Flutter | High |
+| Safety assistant | Offline fallback implemented | Bundled rule-based guidance is physically verified; no online AI provider or server endpoint | Provide a secure server-side provider for online responses; never place a private key in Flutter | High |
 | Backend | Missing for accounts and sync | Hive is local only | Choose backend only after requirements and credentials are available | Critical |
 | Offline persistence | Implemented, partially verified | Hive stores readiness data and contacts; no automated restart integration test | Add integration test and test migration/corruption handling | Critical |
-| Android device integration | Partial | Manifest and native tools compile path implemented; no phone detected | Connect and authorize an Android phone, then run the manual test plan | Critical |
+| Android device integration | Implemented, partially verified | Authorized Infinix X6833B detected; build/install/launch, login, weather, alerts, and offline guide verified | Manually verify disruptive torch, whistle, and dialer actions plus denial/lifecycle paths | Critical |
 
 ## Ordered remaining work
 
-1. Connect a physical Android device and validate contacts, dialer, torch, whistle, GPS, embedded map, lifecycle, and permissions.
-2. Decide the authentication/backend provider and supply development configuration without committing secrets.
-3. Implement registration, recovery, persistent session, logout, emergency profile, and user-scoped remote data.
-4. Implement the AI assistant through a secure server-side endpoint with explicit non-official guidance labeling.
-5. Review all preparedness and hotline content with current authoritative sources.
-6. Add widget and integration coverage for contact CRUD, Hive restart persistence, denial paths, offline mode, and large text.
-7. Configure production signing and build a release artifact.
+1. Manually verify contacts, dialer, torch, whistle, embedded radar, lifecycle, and permission-denial paths on the connected phone.
+2. Connect GitHub tooling, create the private `kalasag-app` repository, and push `main`.
+3. Decide the authentication/backend provider and supply development configuration without committing secrets.
+4. Implement registration, recovery, persistent session, logout, emergency profile, and user-scoped remote data.
+5. Add the online AI assistant through a secure server-side endpoint while retaining the verified offline fallback.
+6. Review all preparedness and hotline content with current authoritative sources.
+7. Add integration coverage for Hive restart persistence, corruption, denial paths, offline mode, and large text.
+8. Configure production signing and build a release artifact.
 
