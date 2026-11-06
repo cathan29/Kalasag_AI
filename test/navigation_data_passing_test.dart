@@ -46,13 +46,14 @@ void main() {
 
     expect(find.text('Advisory details'), findsOneWidget);
     expect(alertTitle, findsOneWidget);
-    expect(find.text('High • PAGASA'), findsOneWidget);
+    expect(find.text('PAGASA'), findsOneWidget);
+    expect(find.text('HIGH'), findsOneWidget);
     expect(find.text('Pangasinan'), findsOneWidget);
 
     await tester.tap(find.byTooltip('Back to alerts'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Alerts'), findsOneWidget);
+    expect(find.text('Disaster alerts'), findsOneWidget);
     expect(alertTitle, findsOneWidget);
   });
 
@@ -65,11 +66,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Alert notifications'), findsOneWidget);
-    expect(find.text('Nearby critical alerts'), findsOneWidget);
+    expect(find.text('Push alerts not configured'), findsOneWidget);
 
     await tester.tap(find.byTooltip('Back to alerts'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Alerts'), findsOneWidget);
+    expect(find.text('Disaster alerts'), findsOneWidget);
   });
 }

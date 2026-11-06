@@ -11,6 +11,8 @@ import 'extras.dart';
 import 'api_activity_screen.dart';
 import 'offline_safety_assistant.dart';
 import 'design_system.dart';
+import 'alert_center.dart';
+export 'alert_center.dart';
 
 String value(dynamic v, [String unit = '']) =>
     v is num ? '${v.round()}$unit' : 'N/A';
@@ -754,13 +756,13 @@ class _Metric extends StatelessWidget {
   );
 }
 
-class AlertsScreen extends StatefulWidget {
-  const AlertsScreen({super.key});
+class _LegacyAlertsScreen extends StatefulWidget {
+  const _LegacyAlertsScreen();
   @override
-  State<AlertsScreen> createState() => _AlertsScreenState();
+  State<_LegacyAlertsScreen> createState() => _LegacyAlertsScreenState();
 }
 
-class _AlertsScreenState extends State<AlertsScreen> {
+class _LegacyAlertsScreenState extends State<_LegacyAlertsScreen> {
   String filter = 'all';
   @override
   Widget build(BuildContext context) {
@@ -975,8 +977,11 @@ class _AlertCard extends StatelessWidget {
   }
 }
 
-class AlertDetailScreen extends StatelessWidget {
-  const AlertDetailScreen(this.alert, {super.key});
+// Kept temporarily for migration comparisons; the active implementation lives
+// in alert_center.dart.
+// ignore: unused_element
+class _LegacyAlertDetailScreen extends StatelessWidget {
+  const _LegacyAlertDetailScreen(this.alert);
   final AlertItem alert;
   @override
   Widget build(BuildContext context) => Scaffold(

@@ -12,6 +12,7 @@ import { z } from 'zod';
 
 import { signConversationToken, verifyConversationToken } from './conversation-token.js';
 import { KALASAG_SYSTEM_INSTRUCTION } from './safety-policy.js';
+import { createAlertAggregator } from './alerts.js';
 
 const requestSchema = z.object({
   message: z.string().trim().min(1).max(1200),
@@ -93,7 +94,7 @@ async function withTimeout(promise, milliseconds) {
   }
 }
 
-export function createApp({ config, ai, verifyIdToken } = {}) {
+export function createApp({ config, ai, verifyIdToken, alertAggregator } = {}) {
   const resolvedConfig = config ?? loadConfig();
   const client = ai ?? new GoogleGenAI({ apiKey: resolvedConfig.apiKey });
   if (!resolvedConfig.allowUnauthenticatedDev && !verifyIdToken) {
@@ -101,6 +102,7 @@ export function createApp({ config, ai, verifyIdToken } = {}) {
   }
   const tokenVerifier =
     verifyIdToken ?? ((token) => getAuth().verifyIdToken(token, true));
+  const alerts = alertAggregator ?? createAlertAggregator();
 
   const app = express();
   app.disable('x-powered-by');
@@ -115,9 +117,39 @@ export function createApp({ config, ai, verifyIdToken } = {}) {
       legacyHeaders: false,
     }),
   );
+  app.use(
+    '/v1/alerts',
+    rateLimit({
+      windowMs: 60_000,
+      limit: 60,
+      standardHeaders: 'draft-8',
+      legacyHeaders: false,
+    }),
+  );
 
   app.get('/health', (_request, response) => {
     response.json({ status: 'ok', model: resolvedConfig.model });
+  });
+
+  app.get('/v1/alerts', async (request, response) => {
+    try {
+      const payload = await alerts.getAlerts({
+        force: request.query.force === 'true' && resolvedConfig.nodeEnv !== 'production',
+      });
+      response.set('Cache-Control', 'public, max-age=60, stale-if-error=300');
+      return response.json(payload);
+    } catch (error) {
+      console.warn(JSON.stringify({
+        event: 'alert_refresh_failed',
+        message: error?.message ?? 'unknown error',
+      }));
+      return response.status(503).json({
+        error: {
+          code: 'alerts_unavailable',
+          message: 'No alert provider or saved server response is available.',
+        },
+      });
+    }
   });
 
   app.post('/v1/chat', async (request, response) => {

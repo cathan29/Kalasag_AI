@@ -81,3 +81,41 @@ test('chat endpoint returns response text and signed context without storing his
     );
   }
 });
+
+test('alert endpoint returns normalized public metadata without chat authentication', async () => {
+  const alertAggregator = {
+    getAlerts: async () => ({
+      alerts: [{ id: 'fixture', agency: 'USGS', verificationStatus: 'supplementary' }],
+      sources: [{ id: 'usgs', name: 'USGS', available: true }],
+      retrievedAt: '2026-10-25T10:00:00Z',
+      cache: { status: 'miss', ageSeconds: 0 },
+    }),
+  };
+  const app = createApp({
+    config: {
+      nodeEnv: 'test',
+      apiKey: 'not-used-by-mock',
+      model: 'gemini-3.5-flash-lite',
+      signingSecret: secret,
+      projectId: '',
+      port: 0,
+      allowUnauthenticatedDev: true,
+    },
+    ai: { interactions: { create: async () => ({}) } },
+    alertAggregator,
+  });
+  const server = app.listen(0, '127.0.0.1');
+  await new Promise((resolve) => server.once('listening', resolve));
+  try {
+    const address = server.address();
+    const response = await fetch('http://127.0.0.1:' + address.port + '/v1/alerts');
+    const body = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(body.alerts[0].verificationStatus, 'supplementary');
+    assert.equal(body.sources[0].available, true);
+  } finally {
+    await new Promise((resolve, reject) =>
+      server.close((error) => (error ? reject(error) : resolve())),
+    );
+  }
+});

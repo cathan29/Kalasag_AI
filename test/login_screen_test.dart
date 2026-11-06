@@ -93,4 +93,127 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('guest account access is always visible and triggers callback', (
+    tester,
+  ) async {
+    var guestUsed = false;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: KalasagTheme.light(),
+        home: LoginScreen(
+          continueAsGuest: () async {
+            guestUsed = true;
+          },
+          navigateAfterGuestSignIn: false,
+        ),
+      ),
+    );
+
+    final guestButton = find.widgetWithText(
+      OutlinedButton,
+      'Continue as Guest',
+    );
+    expect(guestButton, findsOneWidget);
+    await tester.ensureVisible(guestButton);
+    await tester.tap(guestButton);
+    await tester.pump();
+    expect(guestUsed, isTrue);
+  });
+
+  testWidgets(
+    'toggling create account on phone screen does not overflow and keeps guest access',
+    (tester) async {
+      tester.view.physicalSize = const Size(360, 640);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(app());
+
+      final guestButton = find.widgetWithText(
+        OutlinedButton,
+        'Continue as Guest',
+      );
+      expect(guestButton, findsOneWidget);
+
+      final createToggle = find.text('New here? Create an account');
+      await tester.ensureVisible(createToggle);
+      await tester.tap(createToggle);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Create your account'), findsOneWidget);
+      expect(find.byType(TextFormField), findsNWidgets(3));
+      expect(
+        find.widgetWithText(OutlinedButton, 'Continue as Guest'),
+        findsOneWidget,
+      );
+
+      // Form submission validation triggers without layout overflow
+      await tester.tap(find.text('Create account'));
+      await tester.pumpAndSettle();
+      expect(find.text('Enter your email address.'), findsOneWidget);
+      expect(find.text('Enter your password.'), findsOneWidget);
+
+      // Switch back
+      final signinToggle = find.text('Already have an account? Sign in');
+      await tester.ensureVisible(signinToggle);
+      await tester.tap(signinToggle);
+      await tester.pumpAndSettle();
+      expect(find.text('Welcome back'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'login and signup maintain identical header, mascot, and panel geometry',
+    (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(app());
+
+      // 1. Check Login geometry
+      final mascotFinder = find.byType(Image);
+      expect(mascotFinder, findsOneWidget);
+      final loginMascotRect = tester.getRect(mascotFinder);
+
+      final formFinder = find.byType(Form);
+      final loginFormRect = tester.getRect(formFinder);
+
+      // Header copy is present
+      expect(find.text('Be prepared.'), findsOneWidget);
+      expect(find.text('Stay safe.'), findsOneWidget);
+      expect(
+        find.text('Your trusted disaster readiness companion.'),
+        findsOneWidget,
+      );
+
+      // 2. Switch to Sign Up
+      final createToggle = find.text('New here? Create an account');
+      await tester.tap(createToggle);
+      await tester.pumpAndSettle();
+
+      // 3. Verify Sign Up geometry is exactly identical
+      expect(find.text('Create your account'), findsOneWidget);
+      expect(find.text('Be prepared.'), findsOneWidget);
+      expect(find.text('Stay safe.'), findsOneWidget);
+      expect(
+        find.text('Your trusted disaster readiness companion.'),
+        findsOneWidget,
+      );
+
+      final signUpMascotRect = tester.getRect(mascotFinder);
+      expect(signUpMascotRect.top, equals(loginMascotRect.top));
+      expect(signUpMascotRect.left, equals(loginMascotRect.left));
+      expect(signUpMascotRect.width, equals(loginMascotRect.width));
+      expect(signUpMascotRect.height, equals(loginMascotRect.height));
+
+      final signUpFormRect = tester.getRect(formFinder);
+      expect(signUpFormRect.top, equals(loginFormRect.top));
+      expect(signUpFormRect.left, equals(loginFormRect.left));
+      expect(signUpFormRect.width, equals(loginFormRect.width));
+    },
+  );
 }

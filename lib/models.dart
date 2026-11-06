@@ -32,11 +32,108 @@ class AlertItem {
     this.sourceUrl = '',
     this.coordinates,
     this.affectedAreas = const [],
+    this.officialLevel = '',
+    this.actions = const [],
+    this.updatedAt,
+    this.effectiveAt,
+    this.expiresAt,
+    this.retrievedAt,
+    this.referenceNumber = '',
+    this.verificationStatus = 'supplementary',
+    this.lifecycle = 'active',
+    this.language = 'en',
+    this.isCached = false,
   });
   final String id, title, description, severity, source, category, sourceUrl;
   final DateTime publishedAt;
   final GeoPoint? coordinates;
   final List<String> affectedAreas;
+  final String officialLevel;
+  final List<String> actions;
+  final DateTime? updatedAt, effectiveAt, expiresAt, retrievedAt;
+  final String referenceNumber, verificationStatus, lifecycle, language;
+  final bool isCached;
+
+  bool get isDemo => verificationStatus == 'demo' || source == 'OFFLINE DEMO';
+  bool get isEnded => lifecycle == 'ended' || lifecycle == 'cancelled';
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'title': title,
+    'description': description,
+    'issuedAt': publishedAt.toUtc().toIso8601String(),
+    'updatedAt': updatedAt?.toUtc().toIso8601String(),
+    'effectiveAt': effectiveAt?.toUtc().toIso8601String(),
+    'expiresAt': expiresAt?.toUtc().toIso8601String(),
+    'retrievedAt': retrievedAt?.toUtc().toIso8601String(),
+    'visualPriority': severity,
+    'officialLevel': officialLevel,
+    'agency': source,
+    'category': category,
+    'sourceUrl': sourceUrl,
+    'coordinates': coordinates?.toJson(),
+    'affectedAreas': affectedAreas,
+    'actions': actions,
+    'referenceNumber': referenceNumber,
+    'verificationStatus': verificationStatus,
+    'lifecycle': lifecycle,
+    'language': language,
+    'isCached': isCached,
+  };
+
+  factory AlertItem.fromJson(Map<String, dynamic> json) {
+    DateTime? date(String key) => DateTime.tryParse('${json[key] ?? ''}');
+    final rawCoordinates = json['coordinates'];
+    return AlertItem(
+      id: '${json['id']}',
+      title: '${json['title'] ?? 'Disaster advisory'}',
+      description: '${json['description'] ?? ''}',
+      publishedAt: date('issuedAt') ?? date('publishedAt') ?? DateTime.now(),
+      updatedAt: date('updatedAt'),
+      effectiveAt: date('effectiveAt'),
+      expiresAt: date('expiresAt'),
+      retrievedAt: date('retrievedAt'),
+      severity: '${json['visualPriority'] ?? json['severity'] ?? 'Low'}',
+      officialLevel: '${json['officialLevel'] ?? ''}',
+      source: '${json['agency'] ?? json['source'] ?? 'Unknown source'}',
+      category: '${json['category'] ?? 'other'}',
+      sourceUrl: '${json['sourceUrl'] ?? ''}',
+      coordinates: rawCoordinates is Map
+          ? GeoPoint.fromJson(Map<String, dynamic>.from(rawCoordinates))
+          : null,
+      affectedAreas: List<String>.from(json['affectedAreas'] ?? const []),
+      actions: List<String>.from(json['actions'] ?? const []),
+      referenceNumber: '${json['referenceNumber'] ?? ''}',
+      verificationStatus: '${json['verificationStatus'] ?? 'supplementary'}',
+      lifecycle: '${json['lifecycle'] ?? 'active'}',
+      language: '${json['language'] ?? 'en'}',
+      isCached: json['isCached'] == true,
+    );
+  }
+
+  AlertItem copyWith({bool? isCached}) => AlertItem(
+    id: id,
+    title: title,
+    description: description,
+    publishedAt: publishedAt,
+    severity: severity,
+    source: source,
+    category: category,
+    sourceUrl: sourceUrl,
+    coordinates: coordinates,
+    affectedAreas: affectedAreas,
+    officialLevel: officialLevel,
+    actions: actions,
+    updatedAt: updatedAt,
+    effectiveAt: effectiveAt,
+    expiresAt: expiresAt,
+    retrievedAt: retrievedAt,
+    referenceNumber: referenceNumber,
+    verificationStatus: verificationStatus,
+    lifecycle: lifecycle,
+    language: language,
+    isCached: isCached ?? this.isCached,
+  );
 }
 
 class WeatherSnapshot {

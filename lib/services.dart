@@ -175,30 +175,194 @@ const bool liveAlertApisEnabled = bool.fromEnvironment(
   defaultValue: false,
 );
 
+const String alertBackendBaseUrl = String.fromEnvironment(
+  'KALASAG_ALERTS_BASE_URL',
+);
+
+class AlertSourceStatus {
+  const AlertSourceStatus({
+    required this.id,
+    required this.name,
+    required this.available,
+    required this.checkedAt,
+    this.message = '',
+  });
+  final String id, name, message;
+  final bool available;
+  final DateTime checkedAt;
+
+  factory AlertSourceStatus.fromJson(Map<String, dynamic> json) =>
+      AlertSourceStatus(
+        id: '${json['id'] ?? ''}',
+        name: '${json['name'] ?? json['id'] ?? 'Unknown source'}',
+        available: json['available'] == true,
+        checkedAt:
+            DateTime.tryParse('${json['checkedAt'] ?? ''}') ?? DateTime.now(),
+        message: '${json['message'] ?? ''}',
+      );
+}
+
+class AlertFetchResult {
+  const AlertFetchResult({
+    required this.alerts,
+    required this.sources,
+    required this.retrievedAt,
+    this.isDemo = false,
+  });
+  final List<AlertItem> alerts;
+  final List<AlertSourceStatus> sources;
+  final DateTime retrievedAt;
+  final bool isDemo;
+  bool get hasFailures => sources.any((source) => !source.available);
+}
+
 class AlertService {
+  AlertService({http.Client? client, bool? enableLive, String? backendBaseUrl})
+    : _client = client ?? http.Client(),
+      _enableLive = enableLive ?? liveAlertApisEnabled,
+      _backendBaseUrl = backendBaseUrl ?? alertBackendBaseUrl;
+
+  final http.Client _client;
+  final bool _enableLive;
+  final String _backendBaseUrl;
+
   static bool _inside(GeoPoint? p) =>
       p != null &&
       p.latitude >= 4 &&
       p.latitude <= 22 &&
       p.longitude >= 115 &&
       p.longitude <= 130;
-  Future<List<AlertItem>> fetch() async {
-    if (!liveAlertApisEnabled) return _offlineDemoAlerts();
+  Future<List<AlertItem>> fetch() async => (await fetchDetailed()).alerts;
 
-    final results = await Future.wait(
-      [
-        _gdacs(),
-        _usgs(),
-        _eonet(),
-      ].map((f) => f.catchError((_) => <AlertItem>[])),
+  Future<AlertFetchResult> fetchDetailed() async {
+    if (_backendBaseUrl.trim().isNotEmpty) return _fetchBackend();
+    if (!_enableLive) {
+      return AlertFetchResult(
+        alerts: _offlineDemoAlerts(),
+        sources: [
+          AlertSourceStatus(
+            id: 'practice',
+            name: 'Practice mode',
+            available: true,
+            checkedAt: DateTime.now(),
+            message: 'Live ingestion is not configured for this build.',
+          ),
+        ],
+        retrievedAt: DateTime.now(),
+        isDemo: true,
+      );
+    }
+
+    final results = await Future.wait([
+      _capture('gdacs', 'GDACS', _gdacs),
+      _capture('usgs', 'USGS Earthquake Catalog', _usgs),
+      _capture('eonet', 'NASA EONET', _eonet),
+    ]);
+    final alerts = _normalize(results.expand((result) => result.alerts));
+    return AlertFetchResult(
+      alerts: alerts,
+      sources: results.map((result) => result.status).toList(),
+      retrievedAt: DateTime.now(),
     );
-    final seen = <String>{};
-    final all = results
-        .expand((x) => x)
-        .where((a) => seen.add('${a.category}:${a.title}'.toLowerCase()))
-        .toList();
-    all.sort((a, b) => b.publishedAt.compareTo(a.publishedAt));
-    return all;
+  }
+
+  Future<AlertFetchResult> _fetchBackend() async {
+    final base = _backendBaseUrl.replaceFirst(RegExp(r'/$'), '');
+    final response = await _client
+        .get(Uri.parse('$base/v1/alerts'))
+        .timeout(const Duration(seconds: 15));
+    if (response.statusCode != 200) {
+      throw Exception('Alert service returned ${response.statusCode}.');
+    }
+    final body = Map<String, dynamic>.from(jsonDecode(response.body));
+    return AlertFetchResult(
+      alerts: _normalize(
+        List<dynamic>.from(
+          body['alerts'] ?? const [],
+        ).map((item) => AlertItem.fromJson(Map<String, dynamic>.from(item))),
+      ),
+      sources: List<dynamic>.from(body['sources'] ?? const [])
+          .map(
+            (source) =>
+                AlertSourceStatus.fromJson(Map<String, dynamic>.from(source)),
+          )
+          .toList(),
+      retrievedAt:
+          DateTime.tryParse('${body['retrievedAt'] ?? ''}') ?? DateTime.now(),
+    );
+  }
+
+  Future<_ProviderResult> _capture(
+    String id,
+    String name,
+    Future<List<AlertItem>> Function() loader,
+  ) async {
+    final checkedAt = DateTime.now();
+    try {
+      return _ProviderResult(
+        await loader(),
+        AlertSourceStatus(
+          id: id,
+          name: name,
+          available: true,
+          checkedAt: checkedAt,
+        ),
+      );
+    } catch (_) {
+      return _ProviderResult(
+        const [],
+        AlertSourceStatus(
+          id: id,
+          name: name,
+          available: false,
+          checkedAt: checkedAt,
+          message: 'The provider could not be reached.',
+        ),
+      );
+    }
+  }
+
+  List<AlertItem> _normalize(Iterable<AlertItem> input) {
+    final now = DateTime.now();
+    final byKey = <String, AlertItem>{};
+    for (final alert in input) {
+      if (alert.expiresAt != null && alert.expiresAt!.isBefore(now)) continue;
+      final title = alert.title
+          .toLowerCase()
+          .replaceAll(RegExp(r'[^a-z0-9]+'), ' ')
+          .trim();
+      final key =
+          '${alert.category}:$title:${alert.publishedAt.toUtc().toIso8601String().substring(0, 10)}';
+      final previous = byKey[key];
+      if (previous == null ||
+          (alert.updatedAt ?? alert.publishedAt).isAfter(
+            previous.updatedAt ?? previous.publishedAt,
+          )) {
+        byKey[key] = alert;
+      }
+    }
+    final alerts = byKey.values.toList();
+    const rank = {'Critical': 4, 'High': 3, 'Medium': 2, 'Low': 1};
+    alerts.sort((a, b) {
+      if (a.isEnded != b.isEnded) return a.isEnded ? 1 : -1;
+      final priority = (rank[b.severity] ?? 0).compareTo(rank[a.severity] ?? 0);
+      return priority != 0 ? priority : b.publishedAt.compareTo(a.publishedAt);
+    });
+    return alerts;
+  }
+
+  static double distanceKm(GeoPoint a, GeoPoint b) {
+    const radius = 6371.0;
+    double radians(double value) => value * pi / 180;
+    final dLat = radians(b.latitude - a.latitude);
+    final dLon = radians(b.longitude - a.longitude);
+    final value =
+        sin(dLat / 2) * sin(dLat / 2) +
+        cos(radians(a.latitude)) *
+            cos(radians(b.latitude)) *
+            sin(dLon / 2) *
+            sin(dLon / 2);
+    return radius * 2 * atan2(sqrt(value), sqrt(1 - value));
   }
 
   List<AlertItem> _offlineDemoAlerts() {
@@ -214,6 +378,14 @@ class AlertService {
         severity: 'High',
         source: 'OFFLINE DEMO',
         category: 'weather',
+        officialLevel: 'Practice scenario',
+        verificationStatus: 'demo',
+        lifecycle: 'exercise',
+        actions: const [
+          'Review your household flood plan.',
+          'Check your go-bag supplies.',
+        ],
+        retrievedAt: now,
         coordinates: const GeoPoint(15.8949, 120.2863, 'Pangasinan'),
         affectedAreas: const ['Pangasinan'],
       ),
@@ -227,6 +399,14 @@ class AlertService {
         severity: 'Medium',
         source: 'OFFLINE DEMO',
         category: 'earthquake',
+        officialLevel: 'Practice scenario',
+        verificationStatus: 'demo',
+        lifecycle: 'exercise',
+        actions: const [
+          'Practice Drop, Cover, and Hold On.',
+          'Identify safe evacuation routes.',
+        ],
+        retrievedAt: now,
         coordinates: const GeoPoint(16.4023, 120.5960, 'Northern Luzon'),
         affectedAreas: const ['Northern Luzon'],
       ),
@@ -234,10 +414,10 @@ class AlertService {
   }
 
   Future<List<AlertItem>> _gdacs() async {
-    final r = await http
+    final r = await _client
         .get(
           Uri.parse(
-            'https://www.gdacs.org/contentdata/xml/gdacsAPP_Home.geojson',
+            'https://www.gdacs.org/gdacsapi/api/events/geteventlist/events4app',
           ),
         )
         .timeout(const Duration(seconds: 12));
@@ -305,7 +485,7 @@ class AlertService {
       'minmagnitude': '3.5',
       'orderby': 'time',
     });
-    final r = await http.get(uri).timeout(const Duration(seconds: 12));
+    final r = await _client.get(uri).timeout(const Duration(seconds: 12));
     if (r.statusCode != 200) throw Exception();
     final features = List<dynamic>.from(jsonDecode(r.body)['features'] ?? []);
     return features.map((f) {
@@ -345,7 +525,7 @@ class AlertService {
       'status': 'open',
       'limit': '100',
     });
-    final r = await http.get(uri).timeout(const Duration(seconds: 12));
+    final r = await _client.get(uri).timeout(const Duration(seconds: 12));
     if (r.statusCode != 200) throw Exception();
     final events = List<dynamic>.from(jsonDecode(r.body)['events'] ?? []);
     return events
@@ -394,6 +574,12 @@ class AlertService {
       .replaceAll(RegExp(r'<[^>]+>'), ' ')
       .replaceAll(RegExp(r'\s+'), ' ')
       .trim();
+}
+
+class _ProviderResult {
+  const _ProviderResult(this.alerts, this.status);
+  final List<AlertItem> alerts;
+  final AlertSourceStatus status;
 }
 
 double distanceKm(GeoPoint a, GeoPoint b) {

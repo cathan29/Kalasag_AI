@@ -15,6 +15,7 @@ class AppState extends ChangeNotifier {
   GeoPoint? location;
   WeatherSnapshot? weather;
   List<AlertItem> alerts = [];
+  List<AlertSourceStatus> alertSources = [];
   List<Shelter> shelters = [];
   bool locating = true,
       weatherLoading = false,
@@ -22,6 +23,7 @@ class AppState extends ChangeNotifier {
       sheltersLoading = false;
   String? locationError, weatherError, alertsError, sheltersError;
   DateTime? weatherUpdated, alertsUpdated, sheltersUpdated;
+  bool alertsFromCache = false, alertsDemoMode = false;
   double shelterRadius = 25, alertRadius = 100;
   bool notificationsEnabled = true, quietHoursEnabled = true;
   int quietStart = 22, quietEnd = 7;
@@ -117,10 +119,31 @@ class AppState extends ChangeNotifier {
     alertsError = null;
     notifyListeners();
     try {
-      alerts = await alertService.fetch();
-      alertsUpdated = DateTime.now();
+      final result = await alertService.fetchDetailed();
+      alerts = result.alerts;
+      alertSources = result.sources;
+      alertsUpdated = result.retrievedAt;
+      alertsDemoMode = result.isDemo;
+      alertsFromCache = false;
+      if (!result.isDemo) {
+        await localStorage.writeAlerts(
+          jsonEncode({
+            'retrievedAt': result.retrievedAt.toIso8601String(),
+            'alerts': result.alerts.map((alert) => alert.toJson()).toList(),
+          }),
+        );
+      }
+      if (result.hasFailures) {
+        alertsError =
+            'Some providers are unavailable. Available sources are still shown.';
+      }
     } catch (e) {
-      alertsError = 'Live alert providers are temporarily unavailable.';
+      if (alerts.isEmpty) {
+        _restoreAlertCache();
+      }
+      alertsError = alerts.isEmpty
+          ? 'Alert providers are unavailable and no saved advisories exist.'
+          : 'Live refresh failed. Showing the last saved advisories.';
     }
     alertsLoading = false;
     notifyListeners();
@@ -271,6 +294,7 @@ class AppState extends ChangeNotifier {
     try {
       await localStorage.initialize();
       storageReady = true;
+      _restoreAlertCache();
       final raw = localStorage.readState();
       if (raw == null) {
         storageLastOperation = 'Hive ready — no saved data yet';
@@ -299,6 +323,26 @@ class AppState extends ChangeNotifier {
       storageLastOperation = 'Storage error handled safely';
     }
     notifyListeners();
+  }
+
+  void _restoreAlertCache() {
+    try {
+      final raw = localStorage.readAlerts();
+      if (raw == null) return;
+      final data = Map<String, dynamic>.from(jsonDecode(raw));
+      alerts = List<dynamic>.from(data['alerts'] ?? const [])
+          .map(
+            (item) => AlertItem.fromJson(
+              Map<String, dynamic>.from(item),
+            ).copyWith(isCached: true),
+          )
+          .toList();
+      alertsUpdated = DateTime.tryParse('${data['retrievedAt'] ?? ''}');
+      alertsFromCache = alerts.isNotEmpty;
+      alertsDemoMode = false;
+    } catch (_) {
+      // A malformed cache is ignored; readiness data remains available.
+    }
   }
 
   Future<void> _persist([String operation = 'Saved locally']) async {

@@ -411,15 +411,15 @@ class NotificationSettingsScreen extends StatelessWidget {
           Card(
             child: SwitchListTile(
               secondary: const Icon(Icons.notifications_outlined),
-              title: const Text('Nearby critical alerts'),
+              title: const Text('Push alerts not configured'),
               subtitle: const Text(
-                'High and Critical advisories with coordinates',
+                'Kalasag does not claim background delivery until a verified ingestion and push service are deployed.',
               ),
-              value: state.notificationsEnabled,
-              onChanged: (v) => state.updateSettings(enabled: v),
+              value: false,
+              onChanged: null,
             ),
           ),
-          const SectionTitle('Alert radius'),
+          const SectionTitle('Near me radius'),
           SegmentedButton<double>(
             segments: const [
               ButtonSegment(value: 50, label: Text('50 km')),
@@ -429,31 +429,18 @@ class NotificationSettingsScreen extends StatelessWidget {
             selected: {state.alertRadius},
             onSelectionChanged: (v) => state.updateSettings(radius: v.first),
           ),
-          const SectionTitle('Quiet hours'),
+          const SectionTitle('Future notification preferences'),
           Card(
             child: Column(
               children: [
                 SwitchListTile(
                   title: const Text('Mute alerts overnight'),
-                  subtitle: const Text('Alerts remain visible inside Kalasag'),
-                  value: state.quietHoursEnabled,
-                  onChanged: (v) => state.updateSettings(quiet: v),
-                ),
-                if (state.quietHoursEnabled)
-                  Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: SegmentedButton<int>(
-                      segments: const [
-                        ButtonSegment(value: 22, label: Text('10 PM–7 AM')),
-                        ButtonSegment(value: 23, label: Text('11 PM–6 AM')),
-                      ],
-                      selected: {state.quietStart},
-                      onSelectionChanged: (v) => state.updateSettings(
-                        start: v.first,
-                        end: v.first == 22 ? 7 : 6,
-                      ),
-                    ),
+                  subtitle: const Text(
+                    'Available after push delivery is configured',
                   ),
+                  value: false,
+                  onChanged: null,
+                ),
               ],
             ),
           ),

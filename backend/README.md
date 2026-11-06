@@ -1,6 +1,6 @@
 # Kalasag Gemini proxy
 
-This service keeps `GEMINI_API_KEY` on the server and exposes only `POST /v1/chat` to the Flutter app. Production requests require a Firebase Authentication ID token. Conversation context is represented by a short-lived HMAC-signed token bound to the authenticated user; the proxy does not store or log chat text.
+This service keeps `GEMINI_API_KEY` on the server and exposes `POST /v1/chat` plus the read-only `GET /v1/alerts` aggregation endpoint. Chat requires a Firebase Authentication ID token in production. Alert reads contain public disaster metadata and are rate limited.
 
 ## Local configuration
 
@@ -19,3 +19,13 @@ flutter run --dart-define=KALASAG_AI_BASE_URL=https://your-private-proxy.example
 ```
 
 Until real app authentication supplies a Firebase ID token, production chat requests intentionally fail closed. Do not embed the Gemini key, a service-account file, or a reusable bearer token in Flutter or `--dart-define` values.
+
+## Alert aggregation
+
+`GET /v1/alerts` calls USGS, NASA EONET, and GDACS independently, normalizes Philippine-area records, reports source health, deduplicates revisions, and caches the latest successful response. Philippine government pages are included as verification links; the service does not scrape unstable HTML or PDFs.
+
+Point Flutter to this deployment with:
+
+    flutter run --dart-define=KALASAG_ALERTS_BASE_URL=https://your-private-proxy.example
+
+If every provider fails, the service returns a saved response for up to 24 hours with `cache.status` set to `stale`; otherwise it returns HTTP 503. No push delivery is implemented.

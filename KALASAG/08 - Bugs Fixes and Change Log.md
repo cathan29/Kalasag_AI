@@ -95,3 +95,14 @@
 - Latest build installed on Infinix X6833B.
 - Pushed auth/login changes to GitHub `main` as commit `54746b3`.
 - Remaining Firebase Console work: enable Google, Email/Password, and Anonymous providers; add debug SHA-1/SHA-256 fingerprints; test end-to-end on device.
+
+### Fixed authentication layout consistency and owl mascot integration
+
+- Refactored authentication screens to use a shared reusable `AuthLayout` widget, establishing the "Welcome back" layout as the master layout reference.
+- Eliminated all vertical jumping, repositioning, and resizing between Login and Sign Up: both screens share identical background gradient, glow orbs, stationary header height, identical dark navy panel start position, top corner radius (30), and horizontal padding (24).
+- Fixed owl mascot visibility across both screens: the mascot is permanently visible in the exact same position, size (160×185), and bottom-center alignment in both Login and Sign Up.
+- Retained stationary upper heading ("Be prepared. Stay safe." and "Your trusted disaster readiness companion.") across both screens.
+- Completely cleaned `kalasag-ready-transparent.png` asset: eliminated 65,765 background noise pixels and rectangular halo boundaries, smoothed edge transparency, centered the canvas bounding box, harmonized color balance and ambient lighting to match the KALASAG blue/teal environment, and added a soft elliptical contact shadow at the base.
+- Configured panel inner scrolling: only the inner contents of the dark navy panel scroll when content is taller (such as the 3-field Sign Up form) or when the keyboard opens, keeping the outer panel stationary and preventing RenderFlex overflows.
+- Added automated widget test verifying identical mascot and form panel coordinates between Login and Sign Up.
+- `flutter analyze` reports 0 issues and all 36 tests pass.

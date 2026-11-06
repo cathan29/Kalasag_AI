@@ -25,6 +25,12 @@ Kalasag is an Android-focused disaster-readiness application. This vault records
 - Firebase Android configuration is installed locally for `com.cathan.kalasag`.
 - Google sign-in, anonymous guest access, and email signup with verification
   link are wired into the responsive login UI.
+- Standardized authentication layouts with shared AuthLayout: Login and Sign Up
+  now share identical stationary header height, identical dark navy panel start
+  position, and identical owl mascot placement.
+- Cleaned and harmonized kalasag-ready-transparent.png: removed 65,765 background
+  noise pixels, balanced ambient blue lighting, and added a soft contact shadow.
+- Restored permanent guest account access and official 4-color Google logo.
 - Debug build and full Flutter tests pass; the build was installed on the
   authorized Infinix X6833B.
 - Auth/login changes are pushed to GitHub `main` in commit `54746b3`.
