@@ -2,12 +2,13 @@
 
 ## Backend status
 
-An application server now exists specifically for Gemini access. It is not
-deployed and has no supplied Gemini credentials. Firebase Authentication is
-wired in the Flutter client for Google, anonymous guest, and email signup with
-verification link; the real Android configuration is local and ignored by Git.
-There is still no remote user database, synchronization, or completed account
-lifecycle.
+The Gemini proxy backend is fully implemented and locally verified. It is
+configured with untracked `GEMINI_API_KEY` using `gemini-3.5-flash-lite`, serving
+disaster queries at `POST /v1/chat` with HMAC conversation signing. Firebase
+Authentication is wired in the Flutter client for Google, anonymous guest, and
+email signup with verification link; the real Android configuration is local and
+ignored by Git. There is still no remote user database, synchronization, or
+completed remote account profile lifecycle.
 
 ## API integrations
 

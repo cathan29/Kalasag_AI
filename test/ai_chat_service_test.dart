@@ -82,4 +82,43 @@ void main() {
       ),
     );
   });
+
+  test('AiServiceConfig.fromEnvironment provides local dev defaults', () {
+    final config = AiServiceConfig.fromEnvironment();
+    expect(config.baseUrl, 'http://127.0.0.1:8787');
+    expect(config.allowUnauthenticatedDevelopment, isTrue);
+
+    final service = GeminiProxyChatService(config: config);
+    expect(service.isConfigured, isTrue);
+  });
+
+  test('isConfigured recognizes local IP addresses and emulator host', () {
+    expect(
+      GeminiProxyChatService(
+        config: const AiServiceConfig(baseUrl: 'http://10.0.2.2:8787'),
+      ).isConfigured,
+      isTrue,
+    );
+    expect(
+      GeminiProxyChatService(
+        config: const AiServiceConfig(baseUrl: 'http://192.168.100.32:8787'),
+      ).isConfigured,
+      isTrue,
+    );
+    expect(
+      GeminiProxyChatService(
+        config: const AiServiceConfig(baseUrl: 'http://insecure.example.com'),
+      ).isConfigured,
+      isFalse,
+    );
+  });
+
+  test(
+    'FirebaseAiAccessTokenProvider returns null safely without Firebase app',
+    () async {
+      const provider = FirebaseAiAccessTokenProvider();
+      final token = await provider.getToken();
+      expect(token, isNull);
+    },
+  );
 }

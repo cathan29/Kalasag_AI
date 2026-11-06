@@ -59,7 +59,7 @@ Android command-line tools 22.0 are installed at the standard `cmdline-tools/lat
 ## Known issues and limitations
 
 - Google, anonymous guest, and email signup with verification-link UI are wired; provider enablement and complete session/logout/account lifecycle remain pending.
-- AI UI and secure proxy are implemented, but production credentials, proxy deployment, and a live provider acceptance test remain outstanding.
+- AI UI and secure proxy are configured and live-verified with Gemini 3.5 Flash Lite (`adb reverse tcp:8787 tcp:8787` for Android USB debugging; candidate host fallbacks for emulator and Wi-Fi LAN). Remote production cloud deployment behind HTTPS remains for future cloud release.
 - No remote backend or synchronization.
 - Live alerts are disabled by default.
 - Radar depends on an external web page.

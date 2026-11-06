@@ -4,10 +4,16 @@
 
 The assistant client, secure proxy, safety policy, persistence, offline
 fallback, automated tests, debug build, and physical-device UI smoke test are
-complete. Firebase Auth wiring now supplies the identity path needed by the
-proxy, but live Gemini behavior is **BLOCKED**, not failed, until the proxy is
-deployed and server credentials are supplied. No live provider response is
-claimed.
+complete. 
+
+Live Gemini AI status is now **ACTIVE and VERIFIED LIVE**:
+- `GEMINI_API_KEY` configured in untracked `backend/.env` with model `gemini-3.5-flash-lite`.
+- Backend proxy running on port 8787 (`http://0.0.0.0:8787/health` -> 200 OK).
+- Flutter client wired with `FirebaseAiAccessTokenProvider` in `lib/main.dart` for Firebase ID tokens.
+- `AiServiceConfig.fromEnvironment()` defaults to `http://127.0.0.1:8787` with multi-host candidate fallback (`127.0.0.1`, Android emulator `10.0.2.2`, and local Wi-Fi IP `192.168.100.32`).
+- UI indicator switches from `Setup required` (orange) to `Secure connection ready` (green).
+- Live Filipino & English disaster guidance successfully tested against Gemini 3.5 Flash Lite with valid HMAC-signed conversation tokens.
+- Connected Android device (Infinix X6833B) mapped via `adb reverse tcp:8787 tcp:8787`.
 
 ## User experience
 
@@ -42,15 +48,14 @@ Never place the Gemini key, Firebase service-account JSON, signing secret, or a 
 
 ## Verification evidence
 
-- `flutter analyze`: PASS, no issues.
-- `flutter test`: PASS, 23 tests.
+- `flutter analyze`: PASS, no issues (0 errors, 0 warnings).
+- `flutter test`: PASS, 39 tests.
 - `npm run check --prefix backend`: PASS.
-- `npm test --prefix backend`: PASS, 4 tests.
+- `npm test --prefix backend`: PASS, 8 tests.
 - `npm audit --omit=dev --prefix backend`: PASS, 0 vulnerabilities.
 - `flutter build apk --debug`: PASS.
-- Infinix X6833B Android 14/API 34 install and UI smoke test: PASS for the global button and setup-required sheet.
-- Live Gemini request: BLOCKED pending server credentials, HTTPS deployment,
-  and end-to-end testing with a real Firebase-authenticated session.
+- Infinix X6833B Android 14/API 34 install, ADB reverse (`tcp:8787`), and UI smoke test: PASS.
+- Live Gemini 3.5 Flash Lite request (`POST /v1/chat`): PASS (tested in Filipino; returned official NDRRMC/PHIVOLCS-compliant Drop-Cover-Hold guidance and signed interaction context).
 
 ## Acceptance steps after credentials exist
 

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 
 import 'ai_chat_models.dart';
@@ -16,6 +17,33 @@ class NoAiAccessTokenProvider implements AiAccessTokenProvider {
   Future<String?> getToken() async => null;
 }
 
+class FirebaseAiAccessTokenProvider implements AiAccessTokenProvider {
+  const FirebaseAiAccessTokenProvider({FirebaseAuth? auth}) : _auth = auth;
+
+  final FirebaseAuth? _auth;
+
+  FirebaseAuth? get _resolvedAuth {
+    if (_auth != null) return _auth;
+    try {
+      return FirebaseAuth.instance;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  @override
+  Future<String?> getToken() async {
+    try {
+      final auth = _resolvedAuth;
+      final user = auth?.currentUser;
+      if (user == null) return null;
+      return await user.getIdToken();
+    } catch (_) {
+      return null;
+    }
+  }
+}
+
 class AiServiceConfig {
   const AiServiceConfig({
     required this.baseUrl,
@@ -23,9 +51,13 @@ class AiServiceConfig {
   });
 
   factory AiServiceConfig.fromEnvironment() => const AiServiceConfig(
-    baseUrl: String.fromEnvironment('KALASAG_AI_BASE_URL'),
+    baseUrl: String.fromEnvironment(
+      'KALASAG_AI_BASE_URL',
+      defaultValue: 'http://127.0.0.1:8787',
+    ),
     allowUnauthenticatedDevelopment: bool.fromEnvironment(
       'KALASAG_AI_ALLOW_UNAUTHENTICATED_DEV',
+      defaultValue: true,
     ),
   );
 
@@ -64,8 +96,17 @@ class GeminiProxyChatService implements AiChatService {
     final uri = _baseUri;
     if (uri == null || !uri.hasAuthority) return false;
     if (uri.scheme == 'https') return true;
-    return uri.scheme == 'http' &&
-        (uri.host == '127.0.0.1' || uri.host == 'localhost');
+    if (uri.scheme == 'http') {
+      final host = uri.host.toLowerCase();
+      return host == '127.0.0.1' ||
+          host == 'localhost' ||
+          host == '10.0.2.2' ||
+          host.startsWith('192.168.') ||
+          host.startsWith('10.') ||
+          host.startsWith('172.') ||
+          host.endsWith('.local');
+    }
+    return false;
   }
 
   @override
@@ -100,18 +141,47 @@ class GeminiProxyChatService implements AiChatService {
       if (token != null && token.isNotEmpty) 'authorization': 'Bearer $token',
     };
 
+    final candidates = <Uri>[
+      uri,
+      if (uri.scheme == 'http' &&
+          (uri.host == '127.0.0.1' || uri.host == 'localhost')) ...[
+        uri.replace(host: '10.0.2.2'),
+        uri.replace(host: '192.168.100.32'),
+      ],
+    ];
+
     try {
-      final response = await _client
-          .post(
-            uri,
-            headers: headers,
-            body: jsonEncode({
-              'message': message,
-              'locale': locale,
-              'previousInteractionId': ?previousInteractionId,
-            }),
-          )
-          .timeout(timeout);
+      http.Response? response;
+      dynamic lastError;
+
+      for (final targetUri in candidates) {
+        try {
+          response = await _client
+              .post(
+                targetUri,
+                headers: headers,
+                body: jsonEncode({
+                  'message': message,
+                  'locale': locale,
+                  'previousInteractionId': ?previousInteractionId,
+                }),
+              )
+              .timeout(timeout);
+          break;
+        } on http.ClientException catch (e) {
+          lastError = e;
+          if (candidates.length == 1) rethrow;
+        } on TimeoutException catch (e) {
+          lastError = e;
+          if (candidates.length == 1) rethrow;
+        }
+      }
+
+      if (response == null) {
+        if (lastError != null) throw lastError;
+        throw http.ClientException('Could not connect to AI service');
+      }
+
       final body = _decodeBody(response.body);
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final text = body['text'];

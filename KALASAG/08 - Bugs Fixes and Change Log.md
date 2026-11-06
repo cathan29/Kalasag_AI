@@ -1,6 +1,25 @@
 # Bugs Fixes and Change Log
 
-## 2026-10-25
+## 2026-11-07
+
+### Configured and Live-Verified Gemini AI Assistant
+
+- **Status Transition**: Resolved `Setup required` state in the Kalasag AI Assistant bottom sheet; now displays `Secure connection ready` with active green indicator.
+- **Client Configuration Defaults**:
+  - `AiServiceConfig.fromEnvironment()` defaults `baseUrl` to `http://127.0.0.1:8787` and `allowUnauthenticatedDevelopment` to `true`.
+  - Added smart host candidate fallbacks in `GeminiProxyChatService.send()` (`127.0.0.1`, Android emulator `10.0.2.2`, host LAN `192.168.100.32`).
+  - Added `FirebaseAiAccessTokenProvider` implementation and passed it to `GeminiProxyChatService` in `lib/main.dart` for Firebase ID token authentication.
+- **Backend Proxy & Live Gemini Integration**:
+  - Validated `GEMINI_API_KEY` with `gemini-3.5-flash-lite` in `backend/.env`.
+  - Health check at `GET /health` returns status `ok`.
+  - Live query `POST /v1/chat` in Filipino/Tagalog verified with authentic NDRRMC/PHIVOLCS-aligned Drop-Cover-Hold guidance and signed interaction context token.
+  - Set up ADB reverse mapping `tcp:8787 -> tcp:8787` for physical Android phone (Infinix X6833B).
+- **Test Results**:
+  - `flutter analyze`: 0 issues found.
+  - `flutter test`: 39/39 passed (added 3 new tests for config defaults, IP resolution, and token provider).
+  - `npm test --prefix backend`: 8/8 passed.
+
+## 2026-11-06
 
 ### Added emergency contact management
 

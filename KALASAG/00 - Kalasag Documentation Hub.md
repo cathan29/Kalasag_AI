@@ -22,20 +22,20 @@ Kalasag is an Android-focused disaster-readiness application. This vault records
 
 ## Latest verified update
 
-- Firebase Android configuration is installed locally for `com.cathan.kalasag`.
-- Google sign-in, anonymous guest access, and email signup with verification
-  link are wired into the responsive login UI.
-- Standardized authentication layouts with shared AuthLayout: Login and Sign Up
-  now share identical stationary header height, identical dark navy panel start
-  position, and identical owl mascot placement.
-- Cleaned and harmonized kalasag-ready-transparent.png: removed 65,765 background
-  noise pixels, balanced ambient blue lighting, and added a soft contact shadow.
-- Restored permanent guest account access and official 4-color Google logo.
-- Debug build and full Flutter tests pass; the build was installed on the
-  authorized Infinix X6833B.
-- Auth/login changes are pushed to GitHub `main` in commit `54746b3`.
-- Firebase Console provider enablement and SHA fingerprint setup remain
-  required before claiming end-to-end auth success.
+- **Gemini AI Assistant Fully Configured & Live-Verified (2026-11-07)**:
+  - Gemini proxy running locally on port 8787 with `gemini-3.5-flash-lite` credentials.
+  - Flutter client updated with smart local defaults (`http://127.0.0.1:8787`), emulator and LAN fallback (`10.0.2.2`, `192.168.100.32`), and `FirebaseAiAccessTokenProvider`.
+  - Assistant bottom sheet transitioned from `Setup required` to `Secure connection ready` (green indicator).
+  - Physical Android phone (Infinix X6833B) mapped via `adb reverse tcp:8787 tcp:8787`.
+  - Live query in Filipino verified (`POST /v1/chat`): returned NDRRMC/PHIVOLCS-aligned Drop-Cover-Hold guidance and signed interaction context.
+- **Authentication & UI Consistency**:
+  - Standardized authentication layouts with shared AuthLayout: Login and Sign Up
+    share identical stationary header height, identical dark navy panel start
+    position, and identical owl mascot placement.
+  - Cleaned and harmonized kalasag-ready-transparent.png: removed 65,765 background
+    noise pixels, balanced ambient blue lighting, and added a soft contact shadow.
+  - Restored permanent guest account access and official 4-color Google logo.
+  - Full test suite: 39/39 Flutter tests passed, 8/8 backend tests passed, 0 analyze issues.
 
 ## Status legend
 

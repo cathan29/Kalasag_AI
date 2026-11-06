@@ -21,6 +21,7 @@ Future<void> main() async {
           create: (_) => AiChatController(
             service: GeminiProxyChatService(
               config: AiServiceConfig.fromEnvironment(),
+              tokenProvider: const FirebaseAiAccessTokenProvider(),
             ),
             store: HiveAiChatStore(),
             connectivity: PluginAiConnectivity(),
