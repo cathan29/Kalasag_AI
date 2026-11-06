@@ -159,10 +159,12 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
-    final heroHeight = (MediaQuery.sizeOf(context).height * .27).clamp(
-      220.0,
-      236.0,
-    );
+    final compact =
+        keyboardOpen ||
+        _isCreateMode ||
+        MediaQuery.sizeOf(context).height < 700;
+    final showSocial = !_isCreateMode && !keyboardOpen;
+    final showGuest = !_isCreateMode && !keyboardOpen;
     final scheme = Theme.of(context).colorScheme;
     final heroStart = Color.alphaBlend(
       scheme.primary.withValues(alpha: .18),
@@ -201,16 +203,18 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
             SafeArea(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.only(top: keyboardOpen ? 12 : 22),
-                child: Center(
+              child: LayoutBuilder(
+                builder: (context, constraints) => Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 460),
                     child: Column(
                       children: [
-                        if (!keyboardOpen)
+                        if (!compact)
                           SizedBox(
-                            height: heroHeight,
+                            height: (constraints.maxHeight * .30).clamp(
+                              190.0,
+                              236.0,
+                            ),
                             child: Padding(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 28,
@@ -257,15 +261,15 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ),
                                   Image.asset(
                                     'assets/mascot/kalasag-ready-transparent.png',
-                                    width: 168,
-                                    height: 190,
+                                    width: 150,
+                                    height: 170,
                                     fit: BoxFit.contain,
                                   ),
                                 ],
                               ),
                             ),
                           )
-                        else
+                        else if (keyboardOpen && !_isCreateMode)
                           Padding(
                             padding: const EdgeInsets.only(bottom: 12),
                             child: Row(
@@ -293,9 +297,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           width: double.infinity,
                           padding: EdgeInsets.fromLTRB(
                             24,
-                            keyboardOpen ? 20 : 26,
+                            compact ? 16 : 26,
                             24,
-                            keyboardOpen ? 18 : 24,
+                            compact ? 14 : 24,
                           ),
                           decoration: BoxDecoration(
                             color: scheme.surface,
@@ -336,7 +340,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     color: scheme.onSurfaceVariant,
                                   ),
                                 ),
-                                const SizedBox(height: 20),
+                                SizedBox(height: compact ? 12 : 20),
                                 TextFormField(
                                   controller: _emailController,
                                   style: TextStyle(color: scheme.onSurface),
@@ -359,7 +363,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     return null;
                                   },
                                 ),
-                                const SizedBox(height: 14),
+                                SizedBox(height: compact ? 10 : 14),
                                 TextFormField(
                                   controller: _passwordController,
                                   style: TextStyle(color: scheme.onSurface),
@@ -435,7 +439,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     },
                                   ),
                                 ],
-                                const SizedBox(height: 18),
+                                SizedBox(height: compact ? 12 : 18),
                                 SizedBox(
                                   height: 52,
                                   child: FilledButton(
@@ -475,63 +479,67 @@ class _LoginScreenState extends State<LoginScreen> {
                                           ),
                                   ),
                                 ),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 16,
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Expanded(
-                                        child: Divider(
-                                          color: scheme.outlineVariant,
-                                        ),
-                                      ),
-                                      Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 12,
-                                        ),
-                                        child: Text(
-                                          'or continue with',
-                                          style: TextStyle(
-                                            color: scheme.onSurfaceVariant,
-                                            fontSize: 12,
+                                if (showSocial)
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 16,
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: Divider(
+                                            color: scheme.outlineVariant,
                                           ),
                                         ),
-                                      ),
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                          ),
+                                          child: Text(
+                                            'or continue with',
+                                            style: TextStyle(
+                                              color: scheme.onSurfaceVariant,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ),
+                                        Expanded(
+                                          child: Divider(
+                                            color: scheme.outlineVariant,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                if (showSocial)
+                                  Row(
+                                    children: [
                                       Expanded(
-                                        child: Divider(
-                                          color: scheme.outlineVariant,
+                                        child: _SocialButton(
+                                          label: _isSigningInWithGoogle
+                                              ? 'Signing in...'
+                                              : 'Google',
+                                          icon: const _GoogleMark(),
+                                          onPressed: _isSigningInWithGoogle
+                                              ? null
+                                              : _signInWithGoogle,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: _SocialButton(
+                                          label: 'Facebook · Coming soon',
+                                          icon: const FaIcon(
+                                            FontAwesomeIcons.facebookF,
+                                            color: Color(0xFF1877F2),
+                                            size: 18,
+                                          ),
+                                          onPressed: null,
                                         ),
                                       ),
                                     ],
                                   ),
-                                ),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: _SocialButton(
-                                        label: _isSigningInWithGoogle
-                                            ? 'Signing in...'
-                                            : 'Google',
-                                        icon: FontAwesomeIcons.google,
-                                        iconColor: const Color(0xFF4285F4),
-                                        onPressed: _isSigningInWithGoogle
-                                            ? null
-                                            : _signInWithGoogle,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: _SocialButton(
-                                        label: 'Facebook · Coming soon',
-                                        icon: FontAwesomeIcons.facebookF,
-                                        iconColor: const Color(0xFF1877F2),
-                                        onPressed: null,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 16),
+                                SizedBox(height: compact ? 8 : 16),
                                 Center(
                                   child: TextButton(
                                     onPressed:
@@ -550,34 +558,27 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ),
                                   ),
                                 ),
-                                const SizedBox(height: 4),
-                                OutlinedButton.icon(
-                                  onPressed:
-                                      _isLoggingIn ||
-                                          _isCreatingAccount ||
-                                          _isContinuingAsGuest
-                                      ? null
-                                      : _continueAsGuest,
-                                  icon: _isContinuingAsGuest
-                                      ? SizedBox.square(
-                                          dimension: 18,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            color: scheme.primary,
-                                          ),
-                                        )
-                                      : const Icon(Icons.person_outline),
-                                  label: const Text('Continue as Guest'),
-                                ),
-                                const SizedBox(height: 14),
-                                const Text(
-                                  'Demo: use any valid email and 6+ character password.',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: Color(0xFF8FA7C1),
-                                    fontSize: 11,
+                                if (showGuest) ...[
+                                  const SizedBox(height: 4),
+                                  OutlinedButton.icon(
+                                    onPressed:
+                                        _isLoggingIn ||
+                                            _isCreatingAccount ||
+                                            _isContinuingAsGuest
+                                        ? null
+                                        : _continueAsGuest,
+                                    icon: _isContinuingAsGuest
+                                        ? SizedBox.square(
+                                            dimension: 18,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: scheme.primary,
+                                            ),
+                                          )
+                                        : const Icon(Icons.person_outline),
+                                    label: const Text('Continue as Guest'),
                                   ),
-                                ),
+                                ],
                               ],
                             ),
                           ),
@@ -645,13 +646,11 @@ class _SocialButton extends StatelessWidget {
   const _SocialButton({
     required this.label,
     required this.icon,
-    required this.iconColor,
     required this.onPressed,
   });
 
   final String label;
-  final FaIconData icon;
-  final Color iconColor;
+  final Widget icon;
   final VoidCallback? onPressed;
 
   @override
@@ -673,9 +672,52 @@ class _SocialButton extends StatelessWidget {
           ),
         ),
         onPressed: onPressed,
-        icon: FaIcon(icon, color: iconColor, size: 18),
+        icon: icon,
         label: Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
       ),
     );
   }
+}
+
+class _GoogleMark extends StatelessWidget {
+  const _GoogleMark();
+
+  @override
+  Widget build(BuildContext context) =>
+      CustomPaint(size: const Size.square(18), painter: _GoogleMarkPainter());
+}
+
+class _GoogleMarkPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = size.center(Offset.zero);
+    final radius = size.width * .38;
+    final stroke = size.width * .22;
+    final rect = Rect.fromCircle(center: center, radius: radius);
+    final colors = <Color>[
+      const Color(0xFF4285F4),
+      const Color(0xFF34A853),
+      const Color(0xFFFBBC05),
+      const Color(0xFFEA4335),
+    ];
+    final starts = <double>[-.48, .52, 1.52, 2.52];
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = stroke
+      ..strokeCap = StrokeCap.butt;
+    for (var index = 0; index < colors.length; index++) {
+      paint.color = colors[index];
+      canvas.drawArc(rect, starts[index], 1.57, false, paint);
+    }
+    paint
+      ..style = PaintingStyle.fill
+      ..color = const Color(0xFF4285F4);
+    canvas.drawRect(
+      Rect.fromLTWH(center.dx, center.dy - stroke / 2, radius + stroke, stroke),
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
