@@ -5,6 +5,11 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// Keep unconfigured builds usable until the real Firebase project is added.
+if (file("google-services.json").isFile) {
+    apply(plugin = "com.google.gms.google-services")
+}
+
 android {
     namespace = "com.cathan.kalasag"
     compileSdk = flutter.compileSdkVersion
