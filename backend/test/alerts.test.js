@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { createAlertAggregator, normalizeAlerts } from '../src/alerts.js';
+import {
+  createAlertAggregator,
+  fetchPagasaCap,
+  normalizeAlerts,
+} from '../src/alerts.js';
 
 function alert(id, title, priority, updatedAt = '2026-10-25T09:00:00Z') {
   return {
@@ -62,4 +66,41 @@ test('aggregator serves a recent saved response when every provider fails', asyn
   const cached = await aggregator.getAlerts();
   assert.equal(cached.cache.status, 'stale');
   assert.equal(cached.alerts.length, 1);
+});
+
+test('PAGASA CAP adapter preserves official provenance and active lifecycle', async () => {
+  const atom = `<feed xmlns='http://www.w3.org/2005/Atom'>
+      <entry><id>urn:uuid:alert-1</id><title>Yellow Rainfall Warning</title>
+      <updated>2026-11-07T02:00:00+08:00</updated>
+      <link type='application/cap+xml' href='https://pagasa.test/alert-1.cap'/></entry>
+    </feed>`;
+  const cap = `<alert xmlns='urn:oasis:names:tc:emergency:cap:1.2'>
+      <identifier>alert-1</identifier><sender>PAGASA-DOST</sender>
+      <sent>2026-11-07T02:00:00+08:00</sent><status>Actual</status>
+      <msgType>Alert</msgType><scope>Public</scope>
+      <info><event>Yellow Rainfall Warning</event><urgency>Expected</urgency>
+      <severity>Moderate</severity><certainty>Likely</certainty>
+      <expires>2026-11-07T08:00:00+08:00</expires>
+      <headline>Yellow Rainfall Warning</headline>
+      <description>Flooding is possible in low-lying areas.</description>
+      <instruction>Monitor local conditions.</instruction>
+      <web>https://pagasa.test/bulletin</web>
+      <area><areaDesc>Metro Manila</areaDesc></area></info>
+    </alert>`;
+  const fetchImpl = async (url) => ({
+    ok: true,
+    status: 200,
+    text: async () => url.endsWith('.cap') ? cap : atom,
+  });
+
+  const result = await fetchPagasaCap(
+    fetchImpl,
+    new Date('2026-11-06T20:00:00Z'),
+  );
+  assert.equal(result.length, 1);
+  assert.equal(result[0].agency, 'DOST-PAGASA');
+  assert.equal(result[0].verificationStatus, 'official');
+  assert.equal(result[0].visualPriority, 'Medium');
+  assert.deepEqual(result[0].affectedAreas, ['Metro Manila']);
+  assert.equal(result[0].expiresAt, '2026-11-07T00:00:00.000Z');
 });

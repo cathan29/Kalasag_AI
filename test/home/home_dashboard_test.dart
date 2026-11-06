@@ -55,6 +55,63 @@ void main() {
     );
   });
 
+  testWidgets('uses wrap hazards and a continuous compact hourly timeline', (
+    tester,
+  ) async {
+    await pumpDashboard(tester);
+
+    expect(find.byKey(const Key('home-hazard-wrap')), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('home-hourly-line')),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.byKey(const Key('home-hourly-line')), findsOneWidget);
+  });
+
+  testWidgets('uses the full wide mascot art and reference-scale hazards', (
+    tester,
+  ) async {
+    await pumpDashboard(tester);
+
+    final hero = tester.getRect(find.byKey(const Key('home-briefing-hero')));
+    final art = tester.getRect(find.byKey(const Key('home-mascot-happy')));
+    expect(art.width, hero.width);
+    expect(
+      tester.getSize(find.byKey(const Key('home-hazard-wrap'))).height,
+      lessThanOrEqualTo(72),
+    );
+  });
+
+  testWidgets('matches full-bleed hero hazard details and timeline geometry', (
+    tester,
+  ) async {
+    await pumpDashboard(tester);
+
+    final screen = tester.getRect(find.byType(Scaffold));
+    final hero = tester.getRect(find.byKey(const Key('home-briefing-hero')));
+    expect(hero.left, screen.left);
+    expect(hero.right, screen.right);
+    expect(find.text('31.5 \u00b0C'), findsOneWidget);
+    final heatValue = tester.widget<Text>(
+      find.byKey(const Key('home-hazard-heat-value')),
+    );
+    expect(heatValue.style?.fontSize, greaterThanOrEqualTo(22));
+    expect(heatValue.style?.fontWeight, FontWeight.w800);
+    expect(find.byIcon(Icons.thermostat_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.cyclone_outlined), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('home-hourly-line')),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    final line = tester.getRect(find.byKey(const Key('home-hourly-line')));
+    final node = tester.getRect(find.byKey(const Key('home-hourly-node-0')));
+    expect(line.center.dy, closeTo(node.center.dy, .5));
+    expect(line.left, closeTo(node.center.dx, .5));
+  });
+
   testWidgets('fits narrow large-text layout without overflow', (tester) async {
     final semantics = tester.ensureSemantics();
     tester.view.physicalSize = const Size(320, 720);

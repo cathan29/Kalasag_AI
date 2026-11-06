@@ -1,3 +1,5 @@
+import { XMLParser } from 'fast-xml-parser';
+
 const PH_BOUNDS = { minLat: 4, maxLat: 22, minLon: 115, maxLon: 130 };
 const CACHE_TTL_MS = 5 * 60_000;
 const STALE_CACHE_MS = 24 * 60 * 60_000;
@@ -7,10 +9,10 @@ export const ALERT_SOURCE_REGISTRY = [
     id: 'pagasa',
     name: 'DOST-PAGASA',
     authority: 'Philippine government',
-    mode: 'verification-link',
-    url: 'https://www.pagasa.dost.gov.ph/',
+    mode: 'official-cap-feed',
+    url: 'https://publicalert.pagasa.dost.gov.ph/feeds/',
     coverage: ['weather', 'tropical-cyclone', 'flood', 'marine'],
-    note: 'No documented stable public alert API or RSS contract was verified.',
+    note: 'Official WMO-registered Atom feed linking CAP 1.2 alerts.',
   },
   {
     id: 'phivolcs',
@@ -93,6 +95,40 @@ async function getJson(fetchImpl, url) {
   throw lastError;
 }
 
+const xmlParser = new XMLParser({
+  ignoreAttributes: false,
+  attributeNamePrefix: '',
+  trimValues: true,
+});
+
+async function getXml(fetchImpl, url) {
+  let lastError;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const response = await fetchImpl(url, {
+        headers: {
+          accept: 'application/atom+xml, application/cap+xml, application/xml',
+          'user-agent': 'Kalasag/1.0',
+        },
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      return xmlParser.parse(await response.text());
+    } catch (error) {
+      lastError = error;
+      if (attempt === 0) {
+        await new Promise((resolve) => setTimeout(resolve, 250));
+      }
+    }
+  }
+  throw lastError;
+}
+
+function asList(value) {
+  if (value == null) return [];
+  return Array.isArray(value) ? value : [value];
+}
+
 function commonAlert({
   id,
   title,
@@ -109,6 +145,9 @@ function commonAlert({
   lifecycle = 'active',
   referenceNumber = '',
   retrievedAt,
+  expiresAt = null,
+  verificationStatus = 'supplementary',
+  actions = ['Monitor Philippine authorities and follow local evacuation instructions.'],
 }) {
   return {
     id,
@@ -117,7 +156,7 @@ function commonAlert({
     issuedAt: new Date(issuedAt).toISOString(),
     updatedAt: updatedAt ? new Date(updatedAt).toISOString() : null,
     effectiveAt: null,
-    expiresAt: null,
+    expiresAt: expiresAt ? new Date(expiresAt).toISOString() : null,
     retrievedAt: retrievedAt.toISOString(),
     visualPriority: severity,
     officialLevel,
@@ -126,13 +165,90 @@ function commonAlert({
     sourceUrl,
     coordinates,
     affectedAreas,
-    actions: ['Monitor Philippine authorities and follow local evacuation instructions.'],
+    actions,
     referenceNumber,
-    verificationStatus: 'supplementary',
+    verificationStatus,
     lifecycle,
     language: 'en',
     isCached: false,
   };
+}
+
+export async function fetchPagasaCap(fetchImpl, now = new Date()) {
+  const feedUrl = 'https://publicalert.pagasa.dost.gov.ph/feeds/';
+  const feed = await getXml(fetchImpl, feedUrl);
+  const entries = asList(feed.feed?.entry).slice(0, 24);
+  const documents = await Promise.all(
+    entries.map(async (entry) => {
+      const links = asList(entry.link);
+      const capLink = links.find(
+        (link) => link?.type === 'application/cap+xml',
+      );
+      if (!capLink?.href) return null;
+      try {
+        return { capUrl: capLink.href, document: await getXml(fetchImpl, capLink.href) };
+      } catch {
+        return null;
+      }
+    }),
+  );
+
+  return documents.flatMap((record) => {
+    const cap = record?.document?.alert;
+    if (!cap || cap.status !== 'Actual' || cap.scope !== 'Public') return [];
+    const info = asList(cap.info)[0];
+    if (!info) return [];
+    const expiresAt = info.expires ? new Date(info.expires) : null;
+    const isAllClear =
+      cap.msgType === 'Cancel' ||
+      asList(info.responseType).includes('AllClear') ||
+      String(info.event ?? '').toLowerCase().includes('(final)');
+    if (isAllClear || (expiresAt && expiresAt <= now)) return [];
+
+    const severity = {
+      Extreme: 'Critical',
+      Severe: 'High',
+      Moderate: 'Medium',
+      Minor: 'Low',
+      Unknown: 'Low',
+    }[info.severity] ?? 'Low';
+    const event = String(info.event ?? info.headline ?? 'PAGASA weather alert');
+    const normalizedEvent = event.toLowerCase();
+    const category =
+      normalizedEvent.includes('flood') || normalizedEvent.includes('rain')
+        ? 'flood'
+        : normalizedEvent.includes('cyclone') ||
+          normalizedEvent.includes('storm') ||
+          normalizedEvent.includes('gale')
+        ? 'weather'
+        : 'weather';
+    const areas = asList(info.area)
+      .map((area) => String(area?.areaDesc ?? '').trim())
+      .filter(Boolean);
+    const instruction = String(info.instruction ?? '').trim();
+
+    return [
+      commonAlert({
+        id: 'pagasa-' + cap.identifier,
+        title: String(info.headline ?? event),
+        description: String(info.description ?? event),
+        issuedAt: cap.sent ?? now,
+        severity,
+        officialLevel: String(info.severity ?? ''),
+        agency: 'DOST-PAGASA',
+        category,
+        sourceUrl: String(info.web ?? record.capUrl),
+        affectedAreas: areas,
+        referenceNumber: String(cap.identifier ?? ''),
+        retrievedAt: now,
+        expiresAt,
+        verificationStatus: 'official',
+        actions: instruction
+          ? [instruction]
+          : ['Monitor PAGASA and follow local government instructions.'],
+      }),
+    ];
+  });
 }
 
 export async function fetchUsgs(fetchImpl, now = new Date()) {
@@ -307,6 +423,7 @@ export function createAlertAggregator({
   fetchImpl = globalThis.fetch,
   now = () => new Date(),
   providers = [
+    ['pagasa', 'DOST-PAGASA CAP', fetchPagasaCap],
     ['usgs', 'USGS Earthquake Catalog', fetchUsgs],
     ['eonet', 'NASA EONET', fetchEonet],
     ['gdacs', 'GDACS', fetchGdacs],

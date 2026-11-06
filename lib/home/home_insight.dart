@@ -260,9 +260,9 @@ HomePresentation buildHomePresentation(HomePresentationInput input) {
     title = 'Rain in the picture';
     body = 'Prepare for wet conditions and monitor official rainfall updates.';
   } else {
-    title = 'Your daily readiness check';
+    title = 'Today looks mostly clear.';
     body =
-        'Keep your go-bag and family plan ready. Continue monitoring official updates.';
+        '${input.weather.condition} expected for the next few hours. Stay prepared and monitor updates.';
   }
 
   final completed = input.kit.where((item) => item.done).length;

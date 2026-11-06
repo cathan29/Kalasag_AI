@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../design_system.dart';
 import 'home_insight.dart';
 
 class HomeDashboard extends StatelessWidget {
@@ -25,7 +24,7 @@ class HomeDashboard extends StatelessWidget {
       physics: const AlwaysScrollableScrollPhysics(),
       slivers: [
         SliverPadding(
-          padding: KalasagSpace.page,
+          padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
           sliver: SliverList.list(
             children: [
               _Header(
@@ -33,41 +32,36 @@ class HomeDashboard extends StatelessWidget {
                 isRefreshing: isRefreshing,
                 onRefresh: onRefresh,
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 14),
               _BriefingHero(model: model),
-              const SizedBox(height: 24),
-              _SectionHeading(
-                title: 'Hazard Status',
-                subtitle: model.monitoringOfficialUpdates
-                    ? 'Local official data is being monitored'
-                    : 'Current verified information for your area',
-              ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 18),
+              _SectionHeading(title: 'Hazard Status', subtitle: ''),
+              const SizedBox(height: 10),
               _Hazards(items: model.hazards),
-              const SizedBox(height: 26),
+              const Divider(height: 28),
               const _SectionHeading(
                 title: 'Are You Ready?',
                 subtitle: 'Your preparedness at a glance',
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
               _Readiness(summary: model.readiness),
-              const SizedBox(height: 26),
+              const Divider(height: 28),
               const _SectionHeading(
                 title: 'Hourly Weather Pulse',
                 subtitle: 'Rain chance and temperature for the next hours',
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
               _HourlyPulse(points: model.hourlyPulse),
-              const SizedBox(height: 26),
+              const SizedBox(height: 20),
               const _SectionHeading(
                 title: 'Official Advisory',
                 subtitle: 'Latest available source report',
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
               _Advisory(summary: model.advisory, onTap: onOpenAdvisory),
-              const SizedBox(height: 22),
+              const SizedBox(height: 14),
               _Attribution(model: model),
-              const SizedBox(height: 28),
+              const SizedBox(height: 14),
             ],
           ),
         ),
@@ -92,8 +86,8 @@ class _Header extends StatelessWidget {
       Image.asset(
         'assets/mascot/kalasagicon-transparent.png',
         key: const Key('home-brand-logo'),
-        width: 46,
-        height: 46,
+        width: 54,
+        height: 54,
         fit: BoxFit.contain,
         semanticLabel: 'KALASAG logo',
       ),
@@ -108,7 +102,16 @@ class _Header extends StatelessWidget {
                 context,
               ).textTheme.titleLarge?.copyWith(letterSpacing: 1.5),
             ),
-            const SizedBox(height: 2),
+            Text(
+              'PHILIPPINE DISASTER-READINESS APP',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                letterSpacing: 1.2,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 3),
             Row(
               children: [
                 Icon(
@@ -163,50 +166,39 @@ class _BriefingHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
-      final narrow = constraints.maxWidth < 380;
-      final image = ClipRRect(
-        borderRadius: narrow
-            ? const BorderRadius.vertical(top: Radius.circular(20))
-            : BorderRadius.circular(20),
-        child: Image.asset(
-          asset,
-          key: Key('home-mascot-${model.mascotMood.name}'),
-          height: narrow ? 210 : 280,
-          width: double.infinity,
-          fit: BoxFit.cover,
-          alignment: Alignment.centerRight,
-          semanticLabel: 'KALASAG weather companion',
-        ),
-      );
-      final text = _BriefingText(model: model);
-      if (narrow) {
-        return DecoratedBox(
-          decoration: BoxDecoration(
-            color: const Color(0xFF102A43),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [image, text],
-          ),
-        );
-      }
+      final textScale = MediaQuery.textScalerOf(context).scale(1);
+      final heroHeight = textScale > 1.3 ? 310.0 : 238.0;
       return SizedBox(
-        height: 280,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            image,
-            Align(
-              alignment: Alignment.centerLeft,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxWidth: constraints.maxWidth * .56,
+        height: heroHeight,
+        child: OverflowBox(
+          alignment: Alignment.center,
+          minWidth: constraints.maxWidth + 36,
+          maxWidth: constraints.maxWidth + 36,
+          child: SizedBox(
+            key: const Key('home-briefing-hero'),
+            height: heroHeight,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Image.asset(
+                  asset,
+                  key: Key('home-mascot-${model.mascotMood.name}'),
+                  width: double.infinity,
+                  height: double.infinity,
+                  fit: BoxFit.cover,
+                  alignment: Alignment.center,
+                  semanticLabel: 'KALASAG weather companion',
                 ),
-                child: text,
-              ),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: SizedBox(
+                    width: constraints.maxWidth * .48,
+                    child: _BriefingText(model: model),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       );
     },
@@ -218,41 +210,40 @@ class _BriefingText extends StatelessWidget {
   final HomePresentation model;
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(20),
-    decoration: const BoxDecoration(
-      color: Color(0xF0102A43),
-      borderRadius: BorderRadius.only(
-        topLeft: Radius.circular(20),
-        bottomLeft: Radius.circular(20),
-        bottomRight: Radius.circular(20),
-      ),
-    ),
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(20, 20, 8, 20),
     child: Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Container(
+          width: 44,
+          height: 5,
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFD75A),
+            borderRadius: BorderRadius.circular(5),
+          ),
+        ),
+        const SizedBox(height: 14),
         Text(
-          model.currentTemperatureCelsius == null
-              ? model.currentCondition
-              : '${model.currentTemperatureCelsius!.round()}\u00b0  ${model.currentCondition}',
-          style: Theme.of(
-            context,
-          ).textTheme.labelLarge?.copyWith(color: const Color(0xFFFFD75A)),
+          model.briefingTitle,
+          maxLines: 3,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+            color: Colors.white,
+            fontWeight: FontWeight.w800,
+            height: 1.05,
+          ),
         ),
         const SizedBox(height: 10),
         Text(
-          model.briefingTitle,
-          style: Theme.of(
-            context,
-          ).textTheme.headlineSmall?.copyWith(color: Colors.white),
-        ),
-        const SizedBox(height: 8),
-        Text(
           model.briefingBody,
-          style: Theme.of(
-            context,
-          ).textTheme.bodyMedium?.copyWith(color: const Color(0xFFE6EEF7)),
+          maxLines: 4,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: const Color(0xFFE6EEF7),
+            height: 1.25,
+          ),
         ),
       ],
     ),
@@ -268,13 +259,15 @@ class _SectionHeading extends StatelessWidget {
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Text(title, style: Theme.of(context).textTheme.titleLarge),
-      const SizedBox(height: 3),
-      Text(
-        subtitle,
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
+      if (subtitle.isNotEmpty) ...[
+        const SizedBox(height: 3),
+        Text(
+          subtitle,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
         ),
-      ),
+      ],
     ],
   );
 }
@@ -284,81 +277,116 @@ class _Hazards extends StatelessWidget {
   final List<HomeHazardItem> items;
 
   @override
-  Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, constraints) {
-      final width = constraints.maxWidth < 430
-          ? constraints.maxWidth
-          : (constraints.maxWidth - 10) / 2;
-      return Wrap(
-        spacing: 10,
-        runSpacing: 10,
-        children: [
-          for (final item in items)
-            SizedBox(
-              width: width,
-              child: _HazardTile(item: item),
-            ),
-        ],
-      );
-    },
-  );
+  Widget build(BuildContext context) {
+    final textScale = MediaQuery.textScalerOf(context).scale(1);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth >= 520 ? 3 : 2;
+        final tileWidth = (constraints.maxWidth - (columns - 1) * 8) / columns;
+        return Wrap(
+          key: const Key('home-hazard-wrap'),
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final item in items)
+              SizedBox(
+                width: tileWidth,
+                height: textScale > 1.3 ? 112 : 72,
+                child: _HazardTile(item: item),
+              ),
+          ],
+        );
+      },
+    );
+  }
 }
 
 class _HazardTile extends StatelessWidget {
   const _HazardTile({required this.item});
   final HomeHazardItem item;
 
-  (Color, IconData) _visuals(BuildContext context) => switch (item.tone) {
-    HomeHazardTone.safe => (
-      const Color(0xFF218A61),
-      Icons.verified_user_outlined,
-    ),
-    HomeHazardTone.caution => (const Color(0xFFE7A321), Icons.info_outline),
-    HomeHazardTone.warning => (
-      const Color(0xFFE87817),
-      Icons.warning_amber_outlined,
-    ),
-    HomeHazardTone.danger => (
-      Theme.of(context).colorScheme.error,
-      Icons.dangerous_outlined,
-    ),
-    HomeHazardTone.neutral => (
-      Theme.of(context).colorScheme.outline,
-      Icons.shield_outlined,
-    ),
-  };
+  (Color, IconData) _visuals(BuildContext context) {
+    if (item.isEstimated) {
+      return (const Color(0xFFC62828), Icons.thermostat_outlined);
+    }
+    final label = item.label.toLowerCase();
+    if (label.contains('rain')) {
+      return (const Color(0xFFE7A321), Icons.water_drop_outlined);
+    }
+    if (label.contains('cyclone') || label.contains('official alerts')) {
+      return (Theme.of(context).colorScheme.primary, Icons.cyclone_outlined);
+    }
+    return switch (item.tone) {
+      HomeHazardTone.safe => (
+        const Color(0xFF218A61),
+        Icons.verified_user_outlined,
+      ),
+      HomeHazardTone.caution => (const Color(0xFFE7A321), Icons.info_outline),
+      HomeHazardTone.warning => (
+        const Color(0xFFE87817),
+        Icons.warning_amber_outlined,
+      ),
+      HomeHazardTone.danger => (
+        Theme.of(context).colorScheme.error,
+        Icons.dangerous_outlined,
+      ),
+      HomeHazardTone.neutral => (
+        Theme.of(context).colorScheme.outline,
+        Icons.shield_outlined,
+      ),
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
     final (color, icon) = _visuals(context);
+    final displayValue = item.value == 'Monitoring official updates'
+        ? 'Monitoring'
+        : item.value;
+    final secondary = item.isEstimated ? 'Heat Index' : item.label;
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: color.withValues(alpha: .45)),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Icon(icon, color: color),
-          const SizedBox(width: 12),
+          Icon(icon, color: color, size: item.isEstimated ? 24 : 22),
+          const SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(item.label, style: Theme.of(context).textTheme.bodySmall),
-                const SizedBox(height: 4),
                 Text(
-                  item.value,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  item.detail,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  item.isEstimated ? secondary : displayValue,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    height: 1.05,
                   ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  key: item.isEstimated
+                      ? const Key('home-hazard-heat-value')
+                      : null,
+                  item.isEstimated ? item.detail : secondary,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: item.isEstimated
+                      ? Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: color,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w800,
+                          height: 1,
+                        )
+                      : Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                 ),
               ],
             ),
@@ -374,63 +402,37 @@ class _Readiness extends StatelessWidget {
   final HomeReadinessSummary summary;
 
   @override
-  Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, constraints) {
-      final children = [
-        _ReadinessItem(
-          icon: Icons.backpack_outlined,
-          label: 'Go-Bag',
-          value: summary.goBagPercent == null
-              ? 'Not set'
-              : '${summary.goBagPercent}%',
-          detail: '${summary.completedKitItems}/${summary.totalKitItems} items',
-        ),
-        _ReadinessItem(
-          icon: Icons.groups_outlined,
-          label: 'Family Plan',
-          value: summary.familyPlanReady ? 'Ready' : 'Needs setup',
-          detail: summary.familyPlanReady
-              ? 'Plan completed'
-              : 'Complete all plan details',
-        ),
-        _ReadinessItem(
-          icon: Icons.contact_phone_outlined,
-          label: 'Emergency Contacts',
-          value: '${summary.emergencyContactCount}',
-          detail: summary.emergencyContactCount == 1
-              ? 'Saved contact'
-              : 'Saved contacts',
-        ),
-      ];
-      return Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Theme.of(context).dividerColor),
-        ),
-        child: constraints.maxWidth < 380
-            ? Column(
-                children: [
-                  for (var index = 0; index < children.length; index++) ...[
-                    children[index],
-                    if (index < children.length - 1) const Divider(height: 24),
-                  ],
-                ],
-              )
-            : Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  for (var index = 0; index < children.length; index++) ...[
-                    Expanded(child: children[index]),
-                    if (index < children.length - 1)
-                      const SizedBox(height: 70, child: VerticalDivider()),
-                  ],
-                ],
-              ),
-      );
-    },
-  );
+  Widget build(BuildContext context) {
+    final children = [
+      _ReadinessItem(
+        icon: Icons.backpack_outlined,
+        label: 'Go-Bag',
+        value: summary.goBagPercent == null
+            ? 'Not set'
+            : '${summary.goBagPercent}%',
+      ),
+      _ReadinessItem(
+        icon: Icons.groups_outlined,
+        label: 'Family Plan',
+        value: summary.familyPlanReady ? 'Ready' : 'Needs setup',
+      ),
+      _ReadinessItem(
+        icon: Icons.contact_phone_outlined,
+        label: 'Emergency Contacts',
+        value: '${summary.emergencyContactCount}',
+      ),
+    ];
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (var index = 0; index < children.length; index++) ...[
+          Expanded(child: children[index]),
+          if (index < children.length - 1)
+            const SizedBox(height: 62, child: VerticalDivider()),
+        ],
+      ],
+    );
+  }
 }
 
 class _ReadinessItem extends StatelessWidget {
@@ -438,31 +440,30 @@ class _ReadinessItem extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.value,
-    required this.detail,
   });
   final IconData icon;
-  final String label, value, detail;
+  final String label, value;
 
   @override
-  Widget build(BuildContext context) => Row(
-    crossAxisAlignment: CrossAxisAlignment.start,
+  Widget build(BuildContext context) => Column(
+    mainAxisSize: MainAxisSize.min,
     children: [
-      Icon(icon, size: 22, color: Theme.of(context).colorScheme.primary),
-      const SizedBox(width: 10),
-      Expanded(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(label, style: Theme.of(context).textTheme.bodySmall),
-            Text(value, style: Theme.of(context).textTheme.titleMedium),
-            Text(
-              detail,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
+      Icon(icon, size: 25, color: Theme.of(context).colorScheme.primary),
+      const SizedBox(height: 4),
+      Text(
+        label,
+        maxLines: 2,
+        textAlign: TextAlign.center,
+        overflow: TextOverflow.ellipsis,
+        style: Theme.of(context).textTheme.labelSmall,
+      ),
+      Text(
+        value,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: Theme.of(
+          context,
+        ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
       ),
     ],
   );
@@ -480,62 +481,101 @@ class _HourlyPulse extends StatelessWidget {
         text: 'Hourly forecast is not available yet.',
       );
     }
-    return Container(
-      height: 132,
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Theme.of(context).dividerColor),
-      ),
-      child: ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-        scrollDirection: Axis.horizontal,
-        itemCount: points.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          final point = points[index];
-          return SizedBox(
-            width: 76,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  DateFormat.j().format(point.time.toLocal()),
-                  style: Theme.of(context).textTheme.labelLarge,
-                ),
-                Icon(
-                  _weatherIcon(point.weatherCode),
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                Text(
-                  point.rainProbability == null
-                      ? 'Rain --'
-                      : 'Rain ${point.rainProbability}%',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-                Text(
-                  point.temperatureCelsius == null
-                      ? '--'
-                      : '${point.temperatureCelsius!.round()}\u00b0',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-              ],
+    final visible = points.take(6).toList(growable: false);
+    Widget values(
+      String Function(HomeHourlyPoint point) value, {
+      TextStyle? style,
+    }) => Row(
+      children: [
+        for (final point in visible)
+          Expanded(
+            child: Text(
+              value(point),
+              maxLines: 1,
+              textAlign: TextAlign.center,
+              overflow: TextOverflow.ellipsis,
+              style: style,
             ),
-          );
-        },
-      ),
+          ),
+      ],
+    );
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        values(
+          (point) => point.rainProbability == null
+              ? '--'
+              : '${point.rainProbability}%',
+          style: Theme.of(
+            context,
+          ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w800),
+        ),
+        const SizedBox(height: 6),
+        SizedBox(
+          height: 18,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final endInset = constraints.maxWidth / (visible.length * 2);
+              return Stack(
+                alignment: Alignment.center,
+                children: [
+                  Positioned(
+                    left: endInset,
+                    right: endInset,
+                    child: Container(
+                      key: const Key('home-hourly-line'),
+                      height: 2,
+                      color: Theme.of(context).dividerColor,
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      for (var index = 0; index < visible.length; index++)
+                        Expanded(
+                          child: Center(
+                            child: Container(
+                              key: index == 0
+                                  ? const Key('home-hourly-node-0')
+                                  : null,
+                              width: 14,
+                              height: 14,
+                              decoration: BoxDecoration(
+                                color: index == 0
+                                    ? Theme.of(context).colorScheme.primary
+                                    : Theme.of(context).colorScheme.surface,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  width: 1.8,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 5),
+        values(
+          (point) => DateFormat.j().format(point.time.toLocal()),
+          style: Theme.of(context).textTheme.labelSmall,
+        ),
+        const SizedBox(height: 2),
+        values(
+          (point) => point.temperatureCelsius == null
+              ? '--'
+              : '${point.temperatureCelsius!.round()}\u00b0',
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ],
     );
   }
-}
-
-IconData _weatherIcon(int? code) {
-  if (code == null) return Icons.cloud_outlined;
-  if ({95, 96, 99}.contains(code)) return Icons.thunderstorm_outlined;
-  if ({51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82}.contains(code)) {
-    return Icons.water_drop_outlined;
-  }
-  if ({0, 1}.contains(code)) return Icons.wb_sunny_outlined;
-  return Icons.cloud_outlined;
 }
 
 class _Advisory extends StatelessWidget {
@@ -552,34 +592,24 @@ class _Advisory extends StatelessWidget {
         text: 'No advisory is available. Continue monitoring official sources.',
       );
     }
-    final tags = [
-      item.isDemo
-          ? 'Practice'
-          : item.isStale
-          ? 'Stale'
-          : item.isLocal
-          ? 'Local'
-          : 'Area not confirmed',
-      item.severity,
-      item.languageLabel,
-    ];
     return Material(
       color: Theme.of(context).colorScheme.surface,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(14),
         side: BorderSide(color: Theme.of(context).dividerColor),
       ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(14),
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Icon(
-                Icons.campaign_outlined,
+                item.isDemo ? Icons.science_outlined : Icons.campaign_outlined,
                 color: Theme.of(context).colorScheme.primary,
+                size: 30,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -588,40 +618,23 @@ class _Advisory extends StatelessWidget {
                   children: [
                     Text(
                       item.title,
-                      maxLines: 2,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
-                    const SizedBox(height: 5),
+                    const SizedBox(height: 3),
+                    Text(
+                      item.alert.description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 4),
                     Text(
                       '${item.source}  -  ${_relative(item.updatedAt)}',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
-                    ),
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: [
-                        for (final tag in tags)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.surfaceContainerHighest,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              tag,
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
-                          ),
-                      ],
                     ),
                   ],
                 ),

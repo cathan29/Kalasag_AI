@@ -675,6 +675,21 @@ void main() {
       expect(result.hourlyPulse.last.rainProbability, 40);
       expect(result.hourlyPulse.last.weatherCode, 61);
     });
+
+    test('clear current weather drives concise weather-led hero copy', () {
+      final result = presentation(
+        current: const {
+          'temperature_2m': 23.5,
+          'relative_humidity_2m': 63,
+          'weather_code': 0,
+          'precipitation': 0,
+        },
+      );
+
+      expect(result.briefingTitle, 'Today looks mostly clear.');
+      expect(result.briefingBody, contains('Clear sky'));
+      expect(result.briefingBody, isNot(contains('go-bag')));
+    });
   });
 }
 
