@@ -9,8 +9,8 @@ This folder is the standalone Flutter migration of the original React Native app
 - Five-tab Material 3 interface: Weather, Alerts, Radar, Ready, and SOS
 - GPS permission, reverse-geocoded location, Open-Meteo multi-model forecast
 - API evidence screen with live GET, HTTP status, parsed data, and handled failure state
-- Offline demo alerts by default, with optional live GDACS, USGS, and NASA EONET providers
-- Alert filtering, detail pages, and official-source links
+- Clearly labeled practice alerts by default, with a normalized backend feed or optional direct supplementary providers
+- Alert provenance, source health, saved fallback, distance/category filters, detailed lifecycle fields, and Philippine official-source links
 - Embedded Windy rain, wind, temperature, and cloud layers
 - Persistent saved places, go-bag checklist, family plan, and alert preferences
 - OpenStreetMap/Overpass evacuation-center search with radius filters
@@ -34,7 +34,28 @@ flutter run
 
 Choose an Android emulator or USB-connected Android device when prompted. Location and network access are required for live weather, radar, alerts, and shelter search. Emergency data and readiness plans work locally.
 
-Live alert API requests are temporarily disabled by default. The Alerts screen uses clearly labeled offline demo records, so navigation and data-passing can be demonstrated without waiting for network providers. To enable the live providers for a run:
+## Google sign-in Firebase setup
+
+The login screen is wired to Firebase Authentication and Google Sign-In. To
+enable it for Android, use the real Firebase project configuration:
+
+1. Register the Android app with package name `com.cathan.kalasag` in Firebase
+   Console.
+2. Enable **Google** under Authentication > Sign-in method.
+3. Add the debug and release SHA-1/SHA-256 fingerprints under Project settings.
+4. Download `google-services.json` into `android/app/`. This file is ignored by
+   Git and must not be fabricated or committed.
+5. Run `flutter clean`, `flutter pub get`, then `flutter run`.
+
+The app starts safely when Firebase is not configured, but Google sign-in will
+show a setup error until the real configuration is present. Facebook remains
+disabled and labeled “Coming soon”.
+
+The preferred alert configuration is:
+
+    flutter run --dart-define=KALASAG_ALERTS_BASE_URL=https://your-private-proxy.example
+
+Live alert API requests are disabled by default. The Alerts screen uses clearly labeled practice records. Direct supplementary providers can be enabled for development:
 
 ```powershell
 flutter run --dart-define=ENABLE_LIVE_ALERT_APIS=true

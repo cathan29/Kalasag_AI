@@ -1,3 +1,5 @@
+import 'package:firebase_core/firebase_core.dart';
+
 enum FirebaseBootstrapResult { ready, missingConfiguration, failed }
 
 /// Keeps unavailable Firebase setup from blocking local emergency access.
@@ -10,6 +12,10 @@ class FirebaseBootstrap {
     : _initializeFirebase = initializeFirebase;
 
   final Future<void> Function()? _initializeFirebase;
+
+  factory FirebaseBootstrap.native() {
+    return FirebaseBootstrap(initializeFirebase: Firebase.initializeApp);
+  }
 
   Future<FirebaseBootstrapResult> initialize() async {
     final initializeFirebase = _initializeFirebase;

@@ -1,10 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
+import 'auth/google_auth_service.dart';
 import 'extras.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  const LoginScreen({
+    super.key,
+    this.googleSignIn,
+    this.navigateAfterGoogleSignIn = true,
+    this.createAccount,
+    this.continueAsGuest,
+  });
+
+  final Future<void> Function()? googleSignIn;
+  final bool navigateAfterGoogleSignIn;
+  final Future<void> Function(String email, String password)? createAccount;
+  final Future<void> Function()? continueAsGuest;
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -14,25 +28,57 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
+  bool _isCreatingAccount = false;
+  bool _isContinuingAsGuest = false;
+  bool _isCreateMode = false;
   bool _isLoggingIn = false;
+  bool _isSigningInWithGoogle = false;
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
-  void _showComingSoon(String provider) {
+  void _showMessage(String message) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          content: Text('$provider sign-in is coming soon.'),
-        ),
+        SnackBar(behavior: SnackBarBehavior.floating, content: Text(message)),
       );
+  }
+
+  Future<void> _signInWithGoogle() async {
+    if (_isSigningInWithGoogle) return;
+    setState(() => _isSigningInWithGoogle = true);
+    try {
+      await (widget.googleSignIn ?? GoogleAuthService().signIn)();
+      if (!mounted) return;
+      if (widget.navigateAfterGoogleSignIn) {
+        Navigator.of(
+          context,
+        ).pushReplacement(MaterialPageRoute(builder: (_) => const HomeShell()));
+      }
+    } on GoogleSignInException catch (error) {
+      if (!mounted) return;
+      if (error.code == GoogleSignInExceptionCode.canceled) {
+        _showMessage('Google sign-in was cancelled.');
+      } else {
+        _showMessage('Google sign-in failed. Please try again.');
+      }
+    } catch (_) {
+      if (!mounted) return;
+      _showMessage(
+        'Google sign-in is not configured yet. Add the Firebase app configuration and try again.',
+      );
+    } finally {
+      if (mounted) setState(() => _isSigningInWithGoogle = false);
+    }
   }
 
   Future<void> _login() async {
@@ -45,120 +91,222 @@ class _LoginScreenState extends State<LoginScreen> {
     ).pushReplacement(MaterialPageRoute(builder: (_) => const HomeShell()));
   }
 
+  Future<void> _createAccount() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _isCreatingAccount = true);
+    try {
+      await (widget.createAccount ??
+          (email, password) async {
+            final credential = await FirebaseAuth.instance
+                .createUserWithEmailAndPassword(
+                  email: email,
+                  password: password,
+                );
+            await credential.user?.sendEmailVerification();
+          })(_emailController.text.trim(), _passwordController.text);
+      if (!mounted) return;
+      _showMessage(
+        'Account created. Check your email and tap the verification link.',
+      );
+      setState(() => _isCreateMode = false);
+    } on FirebaseAuthException catch (error) {
+      if (!mounted) return;
+      final message = switch (error.code) {
+        'email-already-in-use' => 'This email is already registered.',
+        'invalid-email' => 'Enter a valid email address.',
+        'weak-password' => 'Use a stronger password.',
+        'network-request-failed' => 'Network unavailable. Please try again.',
+        _ => 'Could not create your account. Please try again.',
+      };
+      _showMessage(message);
+    } catch (_) {
+      if (!mounted) return;
+      _showMessage(
+        'Sign-up is not configured yet. Add the Firebase app configuration and try again.',
+      );
+    } finally {
+      if (mounted) setState(() => _isCreatingAccount = false);
+    }
+  }
+
+  Future<void> _continueAsGuest() async {
+    if (_isContinuingAsGuest) return;
+    setState(() => _isContinuingAsGuest = true);
+    try {
+      await (widget.continueAsGuest ??
+          () => FirebaseAuth.instance.signInAnonymously())();
+      if (!mounted) return;
+      Navigator.of(
+        context,
+      ).pushReplacement(MaterialPageRoute(builder: (_) => const HomeShell()));
+    } on FirebaseAuthException catch (error) {
+      if (!mounted) return;
+      _showMessage(
+        error.code == 'network-request-failed'
+            ? 'Network unavailable. Guest access could not start.'
+            : 'Guest access is unavailable right now. Please try again.',
+      );
+    } catch (_) {
+      if (!mounted) return;
+      _showMessage(
+        'Guest access is not configured yet. Add the Firebase app configuration and try again.',
+      );
+    } finally {
+      if (mounted) setState(() => _isContinuingAsGuest = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
+    final heroHeight = (MediaQuery.sizeOf(context).height * .27).clamp(
+      220.0,
+      236.0,
+    );
+    final scheme = Theme.of(context).colorScheme;
+    final heroStart = Color.alphaBlend(
+      scheme.primary.withValues(alpha: .18),
+      scheme.secondary,
+    );
+    final heroEnd = Color.alphaBlend(
+      scheme.primary.withValues(alpha: .38),
+      scheme.secondary,
+    );
     return Scaffold(
-      backgroundColor: const Color(0xFF081426),
+      backgroundColor: scheme.surface,
       body: DecoratedBox(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF071426), Color(0xFF0C2D55), Color(0xFF1769D2)],
-            stops: [0, .58, 1],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [heroStart, heroEnd],
           ),
         ),
         child: Stack(
           children: [
-            const Positioned(
-              top: -95,
-              right: -65,
-              child: _GlowOrb(size: 260, color: Color(0x3367C7E8)),
+            Positioned(
+              top: -90,
+              right: -60,
+              child: _GlowOrb(
+                size: 230,
+                color: scheme.onPrimary.withValues(alpha: .10),
+              ),
             ),
-            const Positioned(
-              bottom: -120,
-              left: -90,
-              child: _GlowOrb(size: 300, color: Color(0x294B8FF7)),
+            Positioned(
+              top: 120,
+              left: -80,
+              child: _GlowOrb(
+                size: 190,
+                color: scheme.onPrimary.withValues(alpha: .08),
+              ),
             ),
             SafeArea(
-              child: Center(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(
-                    20,
-                    keyboardOpen ? 12 : 26,
-                    20,
-                    keyboardOpen ? 12 : 24,
-                  ),
+              child: SingleChildScrollView(
+                padding: EdgeInsets.only(top: keyboardOpen ? 12 : 22),
+                child: Center(
                   child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 430),
+                    constraints: const BoxConstraints(maxWidth: 460),
                     child: Column(
                       children: [
-                        if (!keyboardOpen) ...[
-                          Container(
-                            width: 88,
-                            height: 88,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(26),
-                              boxShadow: const [
-                                BoxShadow(
-                                  color: Color(0x55000000),
-                                  blurRadius: 28,
-                                  offset: Offset(0, 12),
+                        if (!keyboardOpen)
+                          SizedBox(
+                            height: heroHeight,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 28,
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          'Be prepared.',
+                                          style: TextStyle(
+                                            color: scheme.onSecondary,
+                                            fontSize: 30,
+                                            fontWeight: FontWeight.w800,
+                                            height: 1.05,
+                                          ),
+                                        ),
+                                        Text(
+                                          'Stay safe.',
+                                          style: TextStyle(
+                                            color: scheme.onSecondary
+                                                .withValues(alpha: .72),
+                                            fontSize: 30,
+                                            fontWeight: FontWeight.w800,
+                                            height: 1.05,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 10),
+                                        Text(
+                                          'Your trusted disaster readiness companion.',
+                                          style: TextStyle(
+                                            color: scheme.onSecondary
+                                                .withValues(alpha: .82),
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Image.asset(
+                                    'assets/mascot/kalasag-ready-transparent.png',
+                                    width: 168,
+                                    height: 190,
+                                    fit: BoxFit.contain,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
+                        else
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Image.asset(
+                                  'assets/mascot/kalasagicon-transparent.png',
+                                  width: 36,
+                                  height: 36,
+                                ),
+                                const SizedBox(width: 10),
+                                Text(
+                                  'KALASAG',
+                                  style: TextStyle(
+                                    color: scheme.onSecondary,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 2.5,
+                                  ),
                                 ),
                               ],
                             ),
-                            child: Image.asset(
-                              'assets/mascot/kalasagicon-transparent.png',
-                              fit: BoxFit.contain,
-                            ),
                           ),
-                          const SizedBox(height: 14),
-                          const Text(
-                            'KALASAG',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 29,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 4,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          const Text(
-                            'Be informed. Be prepared. Stay safe.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: Color(0xFFBED7F3)),
-                          ),
-                          const SizedBox(height: 22),
-                        ] else ...[
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Image.asset(
-                                'assets/mascot/kalasagicon-transparent.png',
-                                width: 38,
-                                height: 38,
-                              ),
-                              const SizedBox(width: 10),
-                              const Text(
-                                'KALASAG',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 2.5,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                        ],
                         Container(
+                          width: double.infinity,
                           padding: EdgeInsets.fromLTRB(
                             24,
-                            keyboardOpen ? 18 : 26,
+                            keyboardOpen ? 20 : 26,
                             24,
-                            keyboardOpen ? 18 : 22,
+                            keyboardOpen ? 18 : 24,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xF2162946),
-                            borderRadius: BorderRadius.circular(26),
-                            border: Border.all(color: const Color(0x337EC8FF)),
-                            boxShadow: const [
+                            color: scheme.surface,
+                            borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(30),
+                            ),
+                            boxShadow: [
                               BoxShadow(
-                                color: Color(0x59030B17),
-                                blurRadius: 42,
-                                offset: Offset(0, 20),
+                                color: Colors.black.withValues(alpha: .18),
+                                blurRadius: 24,
+                                offset: const Offset(0, -6),
                               ),
                             ],
                           ),
@@ -167,30 +315,32 @@ class _LoginScreenState extends State<LoginScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                if (!keyboardOpen) ...[
-                                  const Text(
-                                    'Welcome back',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 23,
-                                      fontWeight: FontWeight.w800,
-                                    ),
+                                Text(
+                                  _isCreateMode
+                                      ? 'Create your account'
+                                      : 'Welcome back',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: scheme.onSurface,
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w800,
                                   ),
-                                  const SizedBox(height: 4),
-                                  const Text(
-                                    'Sign in to continue to your safety dashboard.',
-                                    style: TextStyle(color: Color(0xFFADC5DF)),
+                                ),
+                                const SizedBox(height: 5),
+                                Text(
+                                  _isCreateMode
+                                      ? 'Stay informed, prepared, and safe with KALASAG.'
+                                      : 'Sign in to continue to your safety dashboard.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: scheme.onSurfaceVariant,
                                   ),
-                                  const SizedBox(height: 20),
-                                ],
+                                ),
+                                const SizedBox(height: 20),
                                 TextFormField(
                                   controller: _emailController,
-                                  style: const TextStyle(
-                                    color: Color(0xFF152A45),
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                  cursorColor: const Color(0xFF1769D2),
+                                  style: TextStyle(color: scheme.onSurface),
+                                  cursorColor: scheme.primary,
                                   keyboardType: TextInputType.emailAddress,
                                   textInputAction: TextInputAction.next,
                                   decoration: _inputDecoration(
@@ -212,12 +362,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                 const SizedBox(height: 14),
                                 TextFormField(
                                   controller: _passwordController,
-                                  style: const TextStyle(
-                                    color: Color(0xFF152A45),
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                  cursorColor: const Color(0xFF1769D2),
+                                  style: TextStyle(color: scheme.onSurface),
+                                  cursorColor: scheme.primary,
                                   obscureText: _obscurePassword,
                                   textInputAction: TextInputAction.done,
                                   onFieldSubmitted: (_) {
@@ -253,58 +399,108 @@ class _LoginScreenState extends State<LoginScreen> {
                                     return null;
                                   },
                                 ),
+                                if (_isCreateMode) ...[
+                                  const SizedBox(height: 14),
+                                  TextFormField(
+                                    controller: _confirmPasswordController,
+                                    style: TextStyle(color: scheme.onSurface),
+                                    obscureText: _obscureConfirmPassword,
+                                    textInputAction: TextInputAction.done,
+                                    decoration:
+                                        _inputDecoration(
+                                          'Confirm password',
+                                          Icons.lock_outline,
+                                        ).copyWith(
+                                          suffixIcon: IconButton(
+                                            tooltip: _obscureConfirmPassword
+                                                ? 'Show password'
+                                                : 'Hide password',
+                                            onPressed: () => setState(
+                                              () => _obscureConfirmPassword =
+                                                  !_obscureConfirmPassword,
+                                            ),
+                                            icon: Icon(
+                                              _obscureConfirmPassword
+                                                  ? Icons.visibility_outlined
+                                                  : Icons
+                                                        .visibility_off_outlined,
+                                            ),
+                                          ),
+                                        ),
+                                    validator: (value) {
+                                      if (value != _passwordController.text) {
+                                        return 'Passwords do not match.';
+                                      }
+                                      return null;
+                                    },
+                                  ),
+                                ],
                                 const SizedBox(height: 18),
                                 SizedBox(
                                   height: 52,
                                   child: FilledButton(
                                     style: FilledButton.styleFrom(
-                                      backgroundColor: const Color(0xFF1769D2),
+                                      backgroundColor: scheme.primary,
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(14),
                                       ),
                                     ),
-                                    onPressed: _isLoggingIn ? null : _login,
-                                    child: _isLoggingIn
-                                        ? const SizedBox.square(
+                                    onPressed:
+                                        _isLoggingIn ||
+                                            _isCreatingAccount ||
+                                            _isContinuingAsGuest
+                                        ? null
+                                        : (_isCreateMode
+                                              ? _createAccount
+                                              : _login),
+                                    child:
+                                        _isLoggingIn ||
+                                            _isCreatingAccount ||
+                                            _isContinuingAsGuest
+                                        ? SizedBox.square(
                                             dimension: 20,
                                             child: CircularProgressIndicator(
-                                              color: Colors.white,
+                                              color: scheme.onPrimary,
                                               strokeWidth: 2,
                                             ),
                                           )
-                                        : const Text(
-                                            'Sign in',
+                                        : Text(
+                                            _isCreateMode
+                                                ? 'Create account'
+                                                : 'Sign in',
                                             style: TextStyle(
-                                              fontSize: 16,
+                                              fontSize: 15,
                                               fontWeight: FontWeight.w700,
                                             ),
                                           ),
                                   ),
                                 ),
-                                const Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 16),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 16,
+                                  ),
                                   child: Row(
                                     children: [
                                       Expanded(
                                         child: Divider(
-                                          color: Color(0xFF405672),
+                                          color: scheme.outlineVariant,
                                         ),
                                       ),
                                       Padding(
-                                        padding: EdgeInsets.symmetric(
+                                        padding: const EdgeInsets.symmetric(
                                           horizontal: 12,
                                         ),
                                         child: Text(
                                           'or continue with',
                                           style: TextStyle(
-                                            color: Color(0xFF91A8C2),
+                                            color: scheme.onSurfaceVariant,
                                             fontSize: 12,
                                           ),
                                         ),
                                       ),
                                       Expanded(
                                         child: Divider(
-                                          color: Color(0xFF405672),
+                                          color: scheme.outlineVariant,
                                         ),
                                       ),
                                     ],
@@ -314,24 +510,64 @@ class _LoginScreenState extends State<LoginScreen> {
                                   children: [
                                     Expanded(
                                       child: _SocialButton(
-                                        label: 'Google',
+                                        label: _isSigningInWithGoogle
+                                            ? 'Signing in...'
+                                            : 'Google',
                                         icon: FontAwesomeIcons.google,
                                         iconColor: const Color(0xFF4285F4),
-                                        onPressed: () =>
-                                            _showComingSoon('Google'),
+                                        onPressed: _isSigningInWithGoogle
+                                            ? null
+                                            : _signInWithGoogle,
                                       ),
                                     ),
                                     const SizedBox(width: 10),
                                     Expanded(
                                       child: _SocialButton(
-                                        label: 'Facebook',
+                                        label: 'Facebook · Coming soon',
                                         icon: FontAwesomeIcons.facebookF,
                                         iconColor: const Color(0xFF1877F2),
-                                        onPressed: () =>
-                                            _showComingSoon('Facebook'),
+                                        onPressed: null,
                                       ),
                                     ),
                                   ],
+                                ),
+                                const SizedBox(height: 16),
+                                Center(
+                                  child: TextButton(
+                                    onPressed:
+                                        _isLoggingIn ||
+                                            _isCreatingAccount ||
+                                            _isContinuingAsGuest
+                                        ? null
+                                        : () => setState(
+                                            () =>
+                                                _isCreateMode = !_isCreateMode,
+                                          ),
+                                    child: Text(
+                                      _isCreateMode
+                                          ? 'Already have an account? Sign in'
+                                          : 'New here? Create an account',
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                OutlinedButton.icon(
+                                  onPressed:
+                                      _isLoggingIn ||
+                                          _isCreatingAccount ||
+                                          _isContinuingAsGuest
+                                      ? null
+                                      : _continueAsGuest,
+                                  icon: _isContinuingAsGuest
+                                      ? SizedBox.square(
+                                          dimension: 18,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: scheme.primary,
+                                          ),
+                                        )
+                                      : const Icon(Icons.person_outline),
+                                  label: const Text('Continue as Guest'),
                                 ),
                                 const SizedBox(height: 14),
                                 const Text(
@@ -361,25 +597,33 @@ class _LoginScreenState extends State<LoginScreen> {
   InputDecoration _inputDecoration(String label, IconData icon) =>
       InputDecoration(
         hintText: label,
-        hintStyle: const TextStyle(
-          color: Color(0xFF8492A6),
+        hintStyle: TextStyle(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
           fontWeight: FontWeight.w500,
         ),
-        prefixIcon: Icon(icon, color: const Color(0xFF50647E), size: 22),
+        prefixIcon: Icon(
+          icon,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+          size: 22,
+        ),
         prefixIconConstraints: const BoxConstraints(minWidth: 52),
         contentPadding: const EdgeInsets.symmetric(
           vertical: 17,
           horizontal: 16,
         ),
         filled: true,
-        fillColor: const Color(0xFFF4F7FB),
+        fillColor: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHighest.withValues(alpha: .55),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFFE3EAF3)),
+          borderSide: BorderSide(
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
         ),
       );
 }
@@ -408,21 +652,30 @@ class _SocialButton extends StatelessWidget {
   final String label;
   final FaIconData icon;
   final Color iconColor;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   @override
-  Widget build(BuildContext context) => SizedBox(
-    height: 48,
-    child: OutlinedButton.icon(
-      style: OutlinedButton.styleFrom(
-        foregroundColor: Colors.white,
-        backgroundColor: const Color(0xFF203855),
-        side: const BorderSide(color: Color(0xFF3A5472)),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return SizedBox(
+      height: 48,
+      child: OutlinedButton.icon(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: onPressed == null
+              ? scheme.onSurfaceVariant
+              : scheme.onSurface,
+          backgroundColor: onPressed == null
+              ? scheme.surfaceContainerHighest.withValues(alpha: .35)
+              : scheme.surfaceContainerHighest,
+          side: BorderSide(color: scheme.outlineVariant),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(13),
+          ),
+        ),
+        onPressed: onPressed,
+        icon: FaIcon(icon, color: iconColor, size: 18),
+        label: Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
       ),
-      onPressed: onPressed,
-      icon: FaIcon(icon, color: iconColor, size: 18),
-      label: Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
-    ),
-  );
+    );
+  }
 }
