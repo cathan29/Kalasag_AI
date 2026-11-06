@@ -24,6 +24,18 @@
 | Full map playback cycle | NOT RUN | Native Windy play/pause/seek control is visible and no longer obstructed; frame progression still requires a supervised visual timing check |
 | Live Gemini response | BLOCKED | No Gemini key, deployed HTTPS proxy, Firebase project, or real app ID token was supplied; no live response is claimed |
 
+## Authentication and login update on 2026-11-06
+
+| Check | Result | Evidence |
+|---|---|---|
+| Firebase bootstrap and login analysis | PASS | `flutter analyze` reports no issues |
+| Login, Google callback, signup, and verification-flow tests | PASS | Focused login widget tests pass |
+| Full Flutter suite after auth/UI changes | PASS | All Flutter tests pass |
+| Firebase Android config | INSTALLED LOCALLY | `android/app/google-services.json` matches `com.cathan.kalasag`; ignored by Git |
+| Android debug build with Firebase config | PASS | `flutter build apk --debug` succeeded |
+| Phone installation | PASS | Latest build installed on Infinix X6833B |
+| Google/guest/email end-to-end auth | PENDING | Enable providers and add SHA-1/SHA-256 fingerprints in Firebase Console before device verification |
+
 ## Android setup
 
 - Flutter SDK: `C:\src\flutter_windows_3.41.6-stable\flutter`
@@ -46,8 +58,8 @@ Android command-line tools 22.0 are installed at the standard `cmdline-tools/lat
 
 ## Known issues and limitations
 
-- Demo login only; no registration, recovery, session, logout, or emergency profile.
-- AI UI and secure proxy are implemented, but production credentials, Firebase app authentication, deployment, and a live provider acceptance test remain outstanding.
+- Google, anonymous guest, and email signup with verification-link UI are wired; provider enablement and complete session/logout/account lifecycle remain pending.
+- AI UI and secure proxy are implemented, but production credentials, proxy deployment, and a live provider acceptance test remain outstanding.
 - No remote backend or synchronization.
 - Live alerts are disabled by default.
 - Radar depends on an external web page.
@@ -57,4 +69,3 @@ Android command-line tools 22.0 are installed at the standard `cmdline-tools/lat
 - Thirty-three dependency updates are outside current constraints and require deliberate compatibility review rather than a bulk upgrade.
 - Initial device launch logged Infinix vendor GPU-format warnings and a slow first frame; the UI still rendered and no Flutter fatal error was found.
 - Torch, whistle, dialer, denial, backgrounding, and interruption behavior remain manually unverified.
-

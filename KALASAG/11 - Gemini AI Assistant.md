@@ -2,7 +2,12 @@
 
 ## Verified implementation status
 
-The assistant client, secure proxy, safety policy, persistence, offline fallback, automated tests, debug build, and physical-device UI smoke test are complete. Live Gemini behavior is **BLOCKED**, not failed: the project has no supplied API key, Firebase project/authentication, or deployed HTTPS proxy. No live provider response is claimed.
+The assistant client, secure proxy, safety policy, persistence, offline
+fallback, automated tests, debug build, and physical-device UI smoke test are
+complete. Firebase Auth wiring now supplies the identity path needed by the
+proxy, but live Gemini behavior is **BLOCKED**, not failed, until the proxy is
+deployed and server credentials are supplied. No live provider response is
+claimed.
 
 ## User experience
 
@@ -44,7 +49,8 @@ Never place the Gemini key, Firebase service-account JSON, signing secret, or a 
 - `npm audit --omit=dev --prefix backend`: PASS, 0 vulnerabilities.
 - `flutter build apk --debug`: PASS.
 - Infinix X6833B Android 14/API 34 install and UI smoke test: PASS for the global button and setup-required sheet.
-- Live Gemini request: BLOCKED pending credentials, real Firebase auth, and HTTPS deployment.
+- Live Gemini request: BLOCKED pending server credentials, HTTPS deployment,
+  and end-to-end testing with a real Firebase-authenticated session.
 
 ## Acceptance steps after credentials exist
 

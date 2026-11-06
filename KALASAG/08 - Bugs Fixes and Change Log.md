@@ -73,3 +73,25 @@
 - Simplified preparedness storage language, emergency search, contact dialing, and safety-tool controls.
 - Added two Windy configuration tests. All 25 Flutter tests pass and the debug APK builds.
 
+## 2026-11-06
+
+### Added Firebase authentication foundation
+
+- Added controlled Firebase bootstrap that does not crash when platform configuration is unavailable.
+- Added Google Sign-In credential exchange through Firebase Auth.
+- Added email/password signup with confirm-password validation and Firebase email verification link.
+- Added anonymous Firebase guest access.
+- Kept Facebook disabled and labeled as coming soon.
+- Added local transparent mascot artwork and enlarged it in the responsive login hero.
+- Reworked login sizing for phone screens and removed the fixed splash delay for faster startup.
+- Installed the real Firebase `google-services.json` locally for `com.cathan.kalasag`; it remains ignored and uncommitted.
+- Files: `lib/auth/firebase_bootstrap.dart`, `lib/auth/google_auth_service.dart`, `lib/login_screen.dart`, `lib/main.dart`, `android/app/google-services.json`.
+
+### Verification and delivery
+
+- `flutter analyze`: PASS.
+- Full `flutter test`: PASS.
+- `flutter build apk --debug`: PASS with Firebase configuration.
+- Latest build installed on Infinix X6833B.
+- Pushed auth/login changes to GitHub `main` as commit `54746b3`.
+- Remaining Firebase Console work: enable Google, Email/Password, and Anonymous providers; add debug SHA-1/SHA-256 fingerprints; test end-to-end on device.

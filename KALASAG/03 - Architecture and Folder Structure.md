@@ -2,7 +2,7 @@
 
 ## Application architecture
 
-- `lib/main.dart`: application entry point, provider setup, theme, splash gate.
+- `lib/main.dart`: application entry point, provider setup, theme, Firebase bootstrap, and login entry.
 - `lib/app_state.dart`: ChangeNotifier state coordinator for location, weather, alerts, shelters, readiness plans, saved places, settings, and emergency contacts.
 - `lib/services.dart`: HTTP integrations for weather, alert aggregation, and OpenStreetMap shelter data.
 - `lib/local_storage_service.dart`: Hive-backed on-device JSON persistence.
@@ -10,7 +10,9 @@
 - `lib/screens.dart`: weather, alerts, radar, and readiness screens.
 - `lib/extras.dart`: emergency directory, shelters, notification settings, and main navigation shell.
 - `lib/sos_features.dart`: custom contacts and Android emergency-tool UI.
-- `lib/login_screen.dart`: demo-only login presentation and validation.
+- `lib/login_screen.dart`: responsive themed login/signup UI, Google sign-in, Firebase email verification, and anonymous guest entry.
+- `lib/auth/firebase_bootstrap.dart`: controlled Firebase initialization that preserves local startup when configuration is unavailable.
+- `lib/auth/google_auth_service.dart`: Google identity-token to Firebase credential exchange.
 - `lib/ai`: AI message models, controller, Hive history store, secure proxy client, chat sheet, and global floating action button.
 - `backend/src/server.js`: authenticated Express proxy for the Gemini Interactions API.
 - `backend/src/safety-policy.js`: disaster-safety system policy and emergency-response boundaries.
@@ -26,7 +28,19 @@ UI screens read or watch `AppState`. Network services return model objects. `App
 
 `AiChatController` owns assistant messages, network state, retry/cancel behavior, and the signed context token. It persists only the bounded local transcript through `AiChatStorage`. `GeminiProxyChatService` calls the configured HTTPS proxy with a Firebase ID token; the proxy validates the token, applies rate limits and the safety policy, calls Gemini, and returns sanitized text plus a new signed context token. Gemini secrets never cross into Flutter.
 
+## Authentication flow
+
+The login screen supports Google sign-in, email/password signup with a Firebase
+verification link, and anonymous guest access. Facebook remains disabled and
+marked as coming soon. Firebase platform configuration is intentionally local:
+`android/app/google-services.json` is ignored by Git and must be generated from
+the real Firebase project. The Android package is `com.cathan.kalasag`.
+
 ## Constraints
 
-The AI proxy is implemented but not deployed or credentialed. The codebase still has no configured remote app authentication or general data-sync backend. Local Hive data is not synchronized across devices and is not encrypted by the application. The radar view is a network-dependent external web experience.
-
+The AI proxy is implemented but not deployed or credentialed. Firebase Auth
+integration is wired but still depends on enabling the providers and adding
+Android SHA fingerprints in the Firebase Console. There is no general
+data-sync backend. Local Hive data is not synchronized across devices and is
+not encrypted by the application. The radar view is a network-dependent
+external web experience.

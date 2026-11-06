@@ -7,8 +7,9 @@
 - Initial commit: `3f213ce chore: establish Kalasag development baseline`
 - Security audit: no credential files, API tokens, signing keys, or machine-local SDK paths were staged.
 - Personal ZIP/DOCX submission artifacts remain on disk and are ignored, not deleted.
-- GitHub target name: `kalasag-app`
-- Remote status: not created. GitHub CLI is not installed and no GitHub connection was confirmed, so no remote URL was guessed and nothing was published.
+- GitHub repository: `https://github.com/cathan29/Kalasag_AI`
+- Remote status: `origin` is configured and Firebase/login changes were pushed to `main` in commit `54746b3`.
+- The local Firebase file `android/app/google-services.json` is ignored and was not pushed.
 
 When authenticated GitHub tooling is available, create a **private** `kalasag-app` repository, add it as `origin`, verify visibility, then push `main`. Never create a public repository or force-push.
 
@@ -44,6 +45,8 @@ Verified on device:
 - Ready to Offline safety guide navigation
 - Earthquake quick-prompt guidance
 - No app-scoped fatal, unhandled Flutter, or ANR log entry during these checks
+- Latest Firebase-configured debug build installed successfully.
+- Login UI includes Google, email signup/verification, and anonymous guest entry.
 
 Still requires supervised manual checks:
 
@@ -52,6 +55,7 @@ Still requires supervised manual checks:
 - Contact/hotline dialer opening without placing a call
 - Radar gestures and network-failure behavior
 - Location permission denial and denied-forever behavior
+- Google sign-in, guest auth, and email verification after enabling Firebase providers and adding SHA fingerprints
 
 ## Reproduction commands
 

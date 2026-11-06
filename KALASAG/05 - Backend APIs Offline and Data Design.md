@@ -2,7 +2,12 @@
 
 ## Backend status
 
-An application server now exists specifically for Gemini access. It is not deployed and has no supplied Gemini/Firebase credentials. There is still no remote user database or configured authentication provider, so account and multi-device persistence requirements remain incomplete.
+An application server now exists specifically for Gemini access. It is not
+deployed and has no supplied Gemini credentials. Firebase Authentication is
+wired in the Flutter client for Google, anonymous guest, and email signup with
+verification link; the real Android configuration is local and ignored by Git.
+There is still no remote user database, synchronization, or completed account
+lifecycle.
 
 ## API integrations
 
@@ -30,4 +35,3 @@ AI history is capped at 40 messages and stored only on device. Server-side conve
 ## Offline boundaries
 
 Core guide and hotline content is bundled. Locally edited readiness information and AI history are stored on the device. Current weather, external maps, shelter lookup, live alerts, and Gemini responses are not available offline. The AI error surface explicitly links to the offline preparedness guide.
-

@@ -28,5 +28,7 @@ The app uses Material 3, a shared light and dark theme, card-based layouts, cons
 - Calls open in the dialer and are not placed silently.
 - Production release signing is not configured; release currently references debug signing.
 
-Before production, add a privacy notice, finish real Firebase authentication, deploy the proxy with managed secrets and HTTPS, complete live safety evaluations, add remote-data retention/deletion controls, and configure production signing.
-
+Before production, add a privacy notice, enable and verify the configured
+Firebase providers, finish session/logout/account lifecycle, deploy the proxy
+with managed secrets and HTTPS, complete live safety evaluations, add
+remote-data retention/deletion controls, and configure production signing.
