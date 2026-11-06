@@ -653,6 +653,28 @@ void main() {
         expect(result.alertsUpdated, instant);
       },
     );
+
+    test('presentation exposes location current weather and hourly pulse', () {
+      final result = presentation(
+        current: const {'temperature_2m': 31.5},
+        hourly: {
+          'time': [
+            instant.toIso8601String(),
+            instant.add(const Duration(hours: 1)).toIso8601String(),
+          ],
+          'temperature_2m': const [31.5, 32.0],
+          'precipitation_probability': const [10, 40],
+          'weather_code': const [1, 61],
+        },
+      );
+
+      expect(result.locationLabel, 'Quezon City, Metro Manila');
+      expect(result.currentTemperatureCelsius, 31.5);
+      expect(result.currentCondition, 'Clear sky');
+      expect(result.hourlyPulse, hasLength(2));
+      expect(result.hourlyPulse.last.rainProbability, 40);
+      expect(result.hourlyPulse.last.weatherCode, 61);
+    });
   });
 }
 
@@ -675,6 +697,7 @@ AlertItem alert([Map<String, dynamic> overrides = const {}]) =>
 HomePresentation presentation({
   List<AlertItem> alerts = const [],
   Map<String, dynamic> current = const {},
+  Map<String, dynamic> hourly = const {},
   GeoPoint location = const GeoPoint(
     14.676,
     121.0437,
@@ -696,7 +719,7 @@ HomePresentation presentation({
         'weather_code': 0,
         ...current,
       },
-      hourly: const {},
+      hourly: hourly,
       daily: const {},
       condition: 'Clear sky',
       modelCount: 1,

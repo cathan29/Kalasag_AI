@@ -12,6 +12,8 @@ import 'api_activity_screen.dart';
 import 'offline_safety_assistant.dart';
 import 'design_system.dart';
 import 'alert_center.dart';
+import 'home/home_dashboard.dart';
+import 'home/home_insight.dart';
 export 'alert_center.dart';
 
 String value(dynamic v, [String unit = '']) =>
@@ -114,6 +116,74 @@ class SectionTitle extends StatelessWidget {
 
 class WeatherScreen extends StatelessWidget {
   const WeatherScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final state = context.watch<AppState>();
+    if ((state.locating || state.weatherLoading) && state.weather == null) {
+      return const Center(child: CircularProgressIndicator.adaptive());
+    }
+    if (state.locationError != null && state.weather == null) {
+      return const EmptyMessage(
+        Icons.location_off_outlined,
+        'Turn on location',
+        'Kalasag uses your location to show nearby weather and center the map.',
+      );
+    }
+    if (state.weatherError != null && state.weather == null) {
+      return const EmptyMessage(
+        Icons.cloud_off_outlined,
+        'Weather is temporarily unavailable',
+        'Check your connection, then pull down to try again.',
+      );
+    }
+    final weather = state.weather;
+    final location = state.location;
+    if (weather == null || location == null) {
+      return const EmptyMessage(
+        Icons.cloud_off_outlined,
+        'No saved forecast yet',
+        'Connect once to load weather for your area.',
+      );
+    }
+
+    final model = buildHomePresentation(
+      HomePresentationInput(
+        weather: weather,
+        location: location,
+        alerts: state.alerts,
+        kit: state.kit,
+        familyPlan: state.familyPlan,
+        emergencyContactCount: state.emergencyContacts.length,
+        alertsFromCache: state.alertsFromCache,
+        alertsDemoMode: state.alertsDemoMode,
+        alertRadiusKm: state.alertRadius,
+        weatherUpdated: state.weatherUpdated,
+        alertsUpdated: state.alertsUpdated,
+        now: DateTime.now(),
+      ),
+    );
+    final advisory = model.advisory;
+    return HomeDashboard(
+      model: model,
+      isRefreshing: state.weatherLoading || state.alertsLoading,
+      onRefresh: () async {
+        await Future.wait([state.refreshWeather(), state.refreshAlerts()]);
+      },
+      onOpenAdvisory: advisory == null
+          ? null
+          : () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => AlertDetailScreen(advisory.alert),
+              ),
+            ),
+    );
+  }
+}
+
+class LegacyWeatherOverview extends StatelessWidget {
+  const LegacyWeatherOverview({super.key});
 
   @override
   Widget build(BuildContext context) {

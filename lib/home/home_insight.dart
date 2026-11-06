@@ -34,7 +34,7 @@ class HomeHazardItem {
       label: 'Estimated heat index',
       value: value,
       detail: available
-          ? '${celsius.toStringAsFixed(1)} °C'
+          ? '${celsius.toStringAsFixed(1)} \u00b0C'
           : 'Temperature and humidity required',
       tone: tone,
       isEstimated: true,
@@ -80,6 +80,20 @@ class HomeReadinessSummary {
   final bool familyPlanReady;
 }
 
+class HomeHourlyPoint {
+  const HomeHourlyPoint({
+    required this.time,
+    required this.temperatureCelsius,
+    required this.rainProbability,
+    required this.weatherCode,
+  });
+
+  final DateTime time;
+  final double? temperatureCelsius;
+  final int? rainProbability;
+  final int? weatherCode;
+}
+
 class HomePresentation {
   HomePresentation({
     required this.mascotMood,
@@ -92,7 +106,12 @@ class HomePresentation {
     required this.alertsUpdated,
     required this.weatherIsStale,
     required this.monitoringOfficialUpdates,
-  }) : hazards = List.unmodifiable(hazards);
+    required this.locationLabel,
+    required this.currentTemperatureCelsius,
+    required this.currentCondition,
+    required List<HomeHourlyPoint> hourlyPulse,
+  }) : hazards = List.unmodifiable(hazards),
+       hourlyPulse = List.unmodifiable(hourlyPulse);
 
   final HomeMascotMood mascotMood;
   final String briefingTitle, briefingBody;
@@ -101,6 +120,9 @@ class HomePresentation {
   final HomeReadinessSummary readiness;
   final DateTime? weatherUpdated, alertsUpdated;
   final bool weatherIsStale, monitoringOfficialUpdates;
+  final String locationLabel, currentCondition;
+  final double? currentTemperatureCelsius;
+  final List<HomeHourlyPoint> hourlyPulse;
 }
 
 class HomePresentationInput {
@@ -244,6 +266,32 @@ HomePresentation buildHomePresentation(HomePresentationInput input) {
   }
 
   final completed = input.kit.where((item) => item.done).length;
+  final hourly = input.weather.hourly;
+  final times = List<dynamic>.from(hourly['time'] ?? const []);
+  final temperatures = List<dynamic>.from(hourly['temperature_2m'] ?? const []);
+  final rainProbabilities = List<dynamic>.from(
+    hourly['precipitation_probability'] ?? const [],
+  );
+  final weatherCodes = List<dynamic>.from(hourly['weather_code'] ?? const []);
+  final pulse = <HomeHourlyPoint>[];
+  for (var index = 0; index < times.length && pulse.length < 8; index++) {
+    final time = DateTime.tryParse('${times[index]}');
+    if (time == null || time.isBefore(input.now)) continue;
+    pulse.add(
+      HomeHourlyPoint(
+        time: time,
+        temperatureCelsius: index < temperatures.length
+            ? _number(temperatures[index])
+            : null,
+        rainProbability: index < rainProbabilities.length
+            ? _number(rainProbabilities[index])?.round()
+            : null,
+        weatherCode: index < weatherCodes.length
+            ? _number(weatherCodes[index])?.round()
+            : null,
+      ),
+    );
+  }
   return HomePresentation(
     mascotMood: mood,
     briefingTitle: title,
@@ -267,6 +315,10 @@ HomePresentation buildHomePresentation(HomePresentationInput input) {
     alertsUpdated: input.alertsUpdated,
     weatherIsStale: !weatherCurrent,
     monitoringOfficialUpdates: official.isEmpty,
+    locationLabel: input.location.label,
+    currentTemperatureCelsius: _number(current['temperature_2m']),
+    currentCondition: input.weather.condition,
+    hourlyPulse: pulse,
   );
 }
 
@@ -428,7 +480,7 @@ bool _weatherCategory(String category) => RegExp(
 
 String _normalizeArea(String value) => value
     .toLowerCase()
-    .replaceAll('ñ', 'n')
+    .replaceAll('\u00f1', 'n')
     .replaceAll(RegExp(r'[^a-z0-9]+'), ' ')
     .trim();
 
