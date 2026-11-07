@@ -4,6 +4,7 @@ import test from 'node:test';
 import {
   createAlertAggregator,
   fetchPagasaCap,
+  fetchPagasaEnso,
   normalizeAlerts,
 } from '../src/alerts.js';
 
@@ -30,6 +31,54 @@ test('normalization deduplicates revisions and sorts by visual priority', () => 
   assert.equal(result.length, 2);
   assert.equal(result[0].id, 'critical');
   assert.equal(result[1].id, 'new');
+});
+
+test('PAGASA ENSO adapter returns latest official monthly advisory', async () => {
+  const html = `<table><tr>
+    <td class=text-center>2026-11-03</td>
+    <td><a href=https://pagasa.test/enso-6.pdf>El Niño Advisory No. 6</a></td>
+  </tr></table>`;
+  const fetchImpl = async () => ({
+    ok: true,
+    status: 200,
+    text: async () => html,
+  });
+  const result = await fetchPagasaEnso(
+    fetchImpl,
+    new Date('2026-11-07T06:00:00Z'),
+  );
+  assert.equal(result.length, 1);
+  assert.equal(result[0].agency, 'DOST-PAGASA');
+  assert.equal(result[0].verificationStatus, 'official');
+  assert.equal(result[0].officialLevel, 'El Niño Advisory');
+  assert.deepEqual(result[0].affectedAreas, ['Philippines']);
+});
+
+test('PAGASA ENSO adapter prefers the current official monitoring strength', async () => {
+  const advisoryHtml = `<table><tr>
+    <td>2026-11-03</td>
+    <td><a href="/enso-6.pdf">El Ni\u00f1o Advisory No. 6</a></td>
+  </tr></table>`;
+  const monitoringHtml = `
+    <p><b>PAGASA</b>: A Very Strong El Ni\u00f1o is currently present in the tropical Pacific
+    and is expected to persist. (Updated: 04 November 2026)</p>`;
+  const fetchImpl = async (url) => ({
+    ok: true,
+    status: 200,
+    text: async () => String(url).includes('/monitoring')
+      ? monitoringHtml
+      : advisoryHtml,
+  });
+
+  const result = await fetchPagasaEnso(
+    fetchImpl,
+    new Date('2026-11-07T06:00:00Z'),
+  );
+
+  assert.equal(result.length, 1);
+  assert.equal(result[0].officialLevel, 'Very Strong El Ni\u00f1o');
+  assert.equal(result[0].title, 'Very Strong El Ni\u00f1o');
+  assert.match(result[0].sourceUrl, /\/monitoring$/);
 });
 
 test('aggregator isolates provider failure and reports source health', async () => {

@@ -24,6 +24,15 @@ export const ALERT_SOURCE_REGISTRY = [
     note: 'Official bulletin pages are linked; HTML is not scraped.',
   },
   {
+    id: 'pagasa-enso',
+    name: 'DOST-PAGASA ENSO',
+    authority: 'Philippine government',
+    mode: 'official-advisory-page',
+    url: 'https://www.pagasa.dost.gov.ph/climate/el-nino-la-nina/advisories',
+    coverage: ['climate', 'el-nino', 'la-nina'],
+    note: 'Official monthly PAGASA ENSO advisory listing.',
+  },
+  {
     id: 'ndrrmc',
     name: 'NDRRMC',
     authority: 'Philippine government',
@@ -251,6 +260,71 @@ export async function fetchPagasaCap(fetchImpl, now = new Date()) {
   });
 }
 
+export async function fetchPagasaEnso(fetchImpl, now = new Date()) {
+  const pageUrl = 'https://www.pagasa.dost.gov.ph/climate/el-nino-la-nina/advisories';
+  const response = await fetchImpl(pageUrl, {
+    headers: { accept: 'text/html', 'user-agent': 'Kalasag/1.0' },
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (!response.ok) throw new Error('HTTP ' + response.status);
+  const html = await response.text();
+  const match = new RegExp(
+    "<td[^>]*>\\s*(\\d{4}-\\d{2}-\\d{2})\\s*</td>\\s*<td[^>]*>\\s*<a[^>]+href\\s*=\\s*(?:\"([^\"]+)\"|'([^']+)'|([^\\s>]+))[^>]*>\\s*((?:El|La)\\s+Ni.o\\s+Advisory[^<]*)</a>",
+    'iu',
+  ).exec(html);
+  if (!match) return [];
+  const issuedAt = new Date(match[1] + 'T00:00:00+08:00');
+  if (!Number.isFinite(issuedAt.getTime()) || issuedAt > now) return [];
+  const expiresAt = new Date(issuedAt.getTime() + 45 * 24 * 60 * 60_000);
+  if (expiresAt <= now) return [];
+  let title = match[5].replace(/\s+/g, ' ').trim();
+  const elNino = /^El\s+/iu.test(title);
+  const enye = String.fromCharCode(0xf1);
+  let officialLevel = elNino
+    ? 'El Ni' + enye + 'o Advisory'
+    : 'La Ni' + enye + 'a Advisory';
+  let sourceUrl = new URL(match[2] ?? match[3] ?? match[4], pageUrl).toString();
+  const monitoringUrl = 'https://www.pagasa.dost.gov.ph/climate/el-nino-la-nina/monitoring';
+  try {
+    const monitoringResponse = await fetchImpl(monitoringUrl, {
+      headers: { accept: 'text/html', 'user-agent': 'Kalasag/1.0' },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (monitoringResponse.ok) {
+      const monitoringHtml = await monitoringResponse.text();
+      const statusMatch = /PAGASA(?:<[^>]+>)*\s*:\s*(?:A\s+)?((?:(?:Weak|Moderate|Strong|Very Strong)\s+)?(?:El\s+Ni.o|La\s+Ni.a))\s+is currently present/iu.exec(monitoringHtml);
+      if (statusMatch) {
+        officialLevel = statusMatch[1]
+          .replace(/El\s+Ni.o/iu, 'El Ni' + enye + 'o')
+          .replace(/La\s+Ni.a/iu, 'La Ni' + enye + 'a')
+          .replace(/\s+/g, ' ')
+          .trim();
+        title = officialLevel;
+        sourceUrl = monitoringUrl;
+      }
+    }
+  } catch {
+    // The monthly advisory remains valid when the monitoring page is unavailable.
+  }
+  return [commonAlert({
+    id: 'pagasa-enso-' + match[1] + '-' + (elNino ? 'el-nino' : 'la-nina'),
+    title,
+    description: title + ' is the latest monthly national ENSO advisory listed by DOST-PAGASA.',
+    issuedAt,
+    severity: 'Medium',
+    officialLevel,
+    agency: 'DOST-PAGASA',
+    category: 'climate',
+    sourceUrl,
+    affectedAreas: ['Philippines'],
+    referenceNumber: title,
+    retrievedAt: now,
+    expiresAt,
+    verificationStatus: 'official',
+    actions: ['Follow PAGASA and local government guidance for climate-related preparedness.'],
+  })];
+}
+
 export async function fetchUsgs(fetchImpl, now = new Date()) {
   const start = new Date(now.getTime() - 3 * 24 * 60 * 60_000).toISOString();
   const query = new URLSearchParams({
@@ -424,6 +498,7 @@ export function createAlertAggregator({
   now = () => new Date(),
   providers = [
     ['pagasa', 'DOST-PAGASA CAP', fetchPagasaCap],
+    ['pagasa-enso', 'DOST-PAGASA ENSO', fetchPagasaEnso],
     ['usgs', 'USGS Earthquake Catalog', fetchUsgs],
     ['eonet', 'NASA EONET', fetchEonet],
     ['gdacs', 'GDACS', fetchGdacs],

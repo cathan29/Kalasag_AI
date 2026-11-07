@@ -97,7 +97,7 @@ void main() {
       find.byKey(const Key('home-hazard-heat-value')),
     );
     expect(heatValue.style?.fontSize, greaterThanOrEqualTo(22));
-    expect(heatValue.style?.fontWeight, FontWeight.w800);
+    expect(heatValue.style?.fontWeight, FontWeight.w900);
     expect(find.byIcon(Icons.thermostat_outlined), findsOneWidget);
     expect(find.byIcon(Icons.cyclone_outlined), findsOneWidget);
 
@@ -110,6 +110,90 @@ void main() {
     final node = tester.getRect(find.byKey(const Key('home-hourly-node-0')));
     expect(line.center.dy, closeTo(node.center.dy, .5));
     expect(line.left, closeTo(node.center.dx, .5));
+  });
+
+  testWidgets('uses heat mascot and exposes heat category', (tester) async {
+    final model = fixture();
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: KalasagTheme.light(),
+        home: Scaffold(
+          body: HomeDashboard(
+            model: HomePresentation(
+              mascotMood: HomeMascotMood.heat,
+              briefingTitle: model.briefingTitle,
+              briefingBody: model.briefingBody,
+              hazards: [model.hazards.first, HomeHazardItem.heatIndex(36.2)],
+              advisory: model.advisory,
+              readiness: model.readiness,
+              weatherUpdated: model.weatherUpdated,
+              alertsUpdated: model.alertsUpdated,
+              weatherIsStale: model.weatherIsStale,
+              monitoringOfficialUpdates: model.monitoringOfficialUpdates,
+              locationLabel: model.locationLabel,
+              currentTemperatureCelsius: model.currentTemperatureCelsius,
+              currentCondition: model.currentCondition,
+              hourlyPulse: model.hourlyPulse,
+            ),
+            isRefreshing: false,
+            onRefresh: () async {},
+          ),
+        ),
+      ),
+    );
+    expect(find.byKey(const Key('home-mascot-heat')), findsOneWidget);
+    expect(find.text('Extreme Caution'), findsOneWidget);
+  });
+
+  testWidgets('fits ENSO status into the same visual ratio as heat', (
+    tester,
+  ) async {
+    final model = fixture();
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: KalasagTheme.dark(),
+        home: Scaffold(
+          body: HomeDashboard(
+            model: HomePresentation(
+              mascotMood: HomeMascotMood.heat,
+              briefingTitle: model.briefingTitle,
+              briefingBody: model.briefingBody,
+              hazards: [
+                const HomeHazardItem(
+                  label: 'Climate outlook',
+                  value: 'Very Strong El Ni\u00F1o',
+                  detail: 'Official national PAGASA status',
+                  isOfficial: true,
+                  tone: HomeHazardTone.caution,
+                ),
+                HomeHazardItem.heatIndex(35.8),
+              ],
+              advisory: model.advisory,
+              readiness: model.readiness,
+              weatherUpdated: model.weatherUpdated,
+              alertsUpdated: model.alertsUpdated,
+              weatherIsStale: model.weatherIsStale,
+              monitoringOfficialUpdates: false,
+              locationLabel: model.locationLabel,
+              currentTemperatureCelsius: model.currentTemperatureCelsius,
+              currentCondition: model.currentCondition,
+              hourlyPulse: model.hourlyPulse,
+            ),
+            isRefreshing: false,
+            onRefresh: () async {},
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      tester.getSize(find.byKey(const Key('home-hazard-climate'))),
+      tester.getSize(find.byKey(const Key('home-hazard-heat'))),
+    );
+    final status = tester.widget<Text>(
+      find.byKey(const Key('home-hazard-climate-value')),
+    );
+    expect(status.maxLines, 1);
   });
 
   testWidgets('fits narrow large-text layout without overflow', (tester) async {

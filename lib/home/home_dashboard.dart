@@ -159,6 +159,7 @@ class _BriefingHero extends StatelessWidget {
 
   String get asset => switch (model.mascotMood) {
     HomeMascotMood.happy => 'assets/mascot/kalasag-weather-happy.png',
+    HomeMascotMood.heat => 'assets/mascot/kalasag-weather-heat.png',
     HomeMascotMood.rain => 'assets/mascot/kalasag-weather-rain.png',
     HomeMascotMood.storm => 'assets/mascot/kalasag-weather-storm.png',
   };
@@ -340,12 +341,69 @@ class _HazardTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (color, icon) = _visuals(context);
+    if (item.isEstimated) {
+      return Container(
+        key: const Key('home-hazard-heat'),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: .08),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: color.withValues(alpha: .55)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: .14),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 22),
+            ),
+            const SizedBox(width: 9),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.detail,
+                    key: const Key('home-hazard-heat-value'),
+                    maxLines: 1,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: color,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                      height: 1,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    item.value,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: color,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: .3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
     final displayValue = item.value == 'Monitoring official updates'
         ? 'Monitoring'
         : item.value;
-    final secondary = item.isEstimated ? 'Heat Index' : item.label;
+    final secondary = item.label;
+    final isClimate = secondary.toLowerCase() == 'climate outlook';
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+      key: isClimate ? const Key('home-hazard-climate') : null,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(14),
@@ -354,39 +412,57 @@ class _HazardTile extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Icon(icon, color: color, size: item.isEstimated ? 24 : 22),
-          const SizedBox(width: 8),
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: .14),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: color, size: 22),
+          ),
+          const SizedBox(width: 9),
           Expanded(
             child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  item.isEstimated ? secondary : displayValue,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    height: 1.05,
+                if (isClimate)
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      displayValue,
+                      key: const Key('home-hazard-climate-value'),
+                      maxLines: 1,
+                      softWrap: false,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        height: 1,
+                      ),
+                    ),
+                  )
+                else
+                  Text(
+                    displayValue,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      height: 1.05,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 4),
                 Text(
-                  key: item.isEstimated
-                      ? const Key('home-hazard-heat-value')
-                      : null,
-                  item.isEstimated ? item.detail : secondary,
+                  secondary,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: item.isEstimated
-                      ? Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: color,
-                          fontSize: 24,
-                          fontWeight: FontWeight.w800,
-                          height: 1,
-                        )
-                      : Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: isClimate
+                        ? color
+                        : Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontWeight: isClimate ? FontWeight.w700 : null,
+                  ),
                 ),
               ],
             ),

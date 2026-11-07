@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import '../models.dart';
 
-enum HomeMascotMood { happy, rain, storm }
+enum HomeMascotMood { happy, heat, rain, storm }
 
 enum HomeHazardTone { neutral, safe, caution, warning, danger }
 
@@ -235,6 +235,9 @@ HomePresentation buildHomePresentation(HomePresentationInput input) {
       ? HomeMascotMood.storm
       : rain
       ? HomeMascotMood.rain
+      : heat.tone == HomeHazardTone.warning ||
+            heat.tone == HomeHazardTone.danger
+      ? HomeMascotMood.heat
       : HomeMascotMood.happy;
 
   final String title;
@@ -461,6 +464,32 @@ HomeHazardItem _officialHazard(AlertItem alert) {
           : HomeHazardTone.caution,
     );
   }
+  final category = alert.category.trim().toLowerCase();
+  final climate = RegExp(
+    r'^(?:(weak|moderate|strong|very strong)\s+)?(el niño|el nino|la niña|la nina)(?: advisory)?$',
+  ).firstMatch(level);
+  if (category == 'climate' && climate != null) {
+    final intensity = switch (climate.group(1)) {
+      'weak' => 'Weak ',
+      'moderate' => 'Moderate ',
+      'strong' => 'Strong ',
+      'very strong' => 'Very Strong ',
+      _ => '',
+    };
+    final elNino = climate.group(2)!.startsWith('el ');
+    final advisory = intensity.isEmpty && level.endsWith(' advisory')
+        ? ' Advisory'
+        : '';
+    return HomeHazardItem(
+      label: 'Climate outlook',
+      value: '$intensity${elNino ? 'El Niño' : 'La Niña'}$advisory',
+      detail: intensity.isEmpty
+          ? 'Official national PAGASA advisory'
+          : 'Official national PAGASA status',
+      isOfficial: true,
+      tone: HomeHazardTone.caution,
+    );
+  }
   return HomeHazardItem(
     label: 'Official alerts',
     value: 'Official advisory',
@@ -486,6 +515,9 @@ String _normalizeArea(String value) => value
 
 bool _isLocal(AlertItem alert, HomePresentationInput input) {
   if (alert.affectedAreas.isNotEmpty) {
+    if (alert.affectedAreas.map(_normalizeArea).contains('philippines')) {
+      return true;
+    }
     final label = _normalizeArea(input.location.label);
     if (label.isEmpty ||
         {

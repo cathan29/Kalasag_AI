@@ -88,6 +88,54 @@ void main() {
   });
 
   group('live alert safety', () {
+    test('extreme-caution heat selects dedicated heat mascot', () {
+      final result = presentation(
+        current: {'temperature_2m': 30, 'relative_humidity_2m': 70},
+      );
+      expect(result.mascotMood, HomeMascotMood.heat);
+      expect(result.briefingTitle, 'Plan for the heat');
+    });
+
+    test('national PAGASA ENSO advisory appears in monitoring', () {
+      final result = presentation(
+        alerts: [
+          alert({
+            'title': 'El Niño Advisory No. 6',
+            'officialLevel': 'El Niño Advisory',
+            'category': 'climate',
+            'affectedAreas': ['Philippines'],
+            'expiresAt': instant
+                .add(const Duration(days: 20))
+                .toIso8601String(),
+          }),
+        ],
+      );
+      expect(result.hazards.first.label, 'Climate outlook');
+      expect(result.hazards.first.value, 'El Niño Advisory');
+      expect(result.monitoringOfficialUpdates, isFalse);
+    });
+
+    test('official PAGASA ENSO strength appears without heat inference', () {
+      final result = presentation(
+        alerts: [
+          alert({
+            'title': 'Very Strong El Ni\u00F1o',
+            'officialLevel': 'Very Strong El Ni\u00F1o',
+            'category': 'climate',
+            'affectedAreas': ['Philippines'],
+            'expiresAt': instant
+                .add(const Duration(days: 20))
+                .toIso8601String(),
+          }),
+        ],
+        current: {'temperature_2m': 23, 'relative_humidity_2m': 50},
+      );
+
+      expect(result.hazards.first.label, 'Climate outlook');
+      expect(result.hazards.first.value, 'Very Strong El Ni\u00F1o');
+      expect(result.hazards.first.isOfficial, isTrue);
+    });
+
     test('official local active unexpired alert outranks derived weather', () {
       final result = presentation(
         alerts: [
